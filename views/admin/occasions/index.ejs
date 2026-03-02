@@ -1,0 +1,109 @@
+<%- 
+  include('../../partials/admin_layout', {
+    title: title,
+    apiBaseUrl: apiBaseUrl,
+    body: `
+    <div class="card">
+      <div class="card-header">
+        <div class="top-actions">
+          <h1>Occasions</h1>
+          <button class="btn btn-primary" id="newOccasionBtn">+ New Occasion</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <p style="margin-top:0; margin-bottom:16px; font-size:14px; color:#555;">
+          Manage occasions (e.g. Wedding, Party, Daily Wear). Assign occasions to products when adding or editing a product.
+        </p>
+        <div id="occasionsTableLoader" class="table-loader">
+          <div class="loader"></div>
+          <div class="loader-text">Loading occasions...</div>
+        </div>
+        <div id="occasionsContainer" style="display:none;">
+          <table id="occasionsTable">
+            <thead>
+              <tr>
+                <th style="width:70px;">Image</th>
+                <th>Name</th>
+                <th>Slug</th>
+                <th style="width:120px;">Status</th>
+                <th style="width:150px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Occasion Modal -->
+    <div id="occasionModal" class="large-modal">
+      <div class="large-modal-content" style="max-width:520px;">
+        <div class="large-modal-header">
+          <h2 id="occasionModalTitle">New Occasion</h2>
+          <button type="button" class="btn btn-secondary" id="closeOccasionModal" style="padding:6px 12px;">×</button>
+        </div>
+        <div class="large-modal-body">
+          <form id="occasionForm">
+            <input type="hidden" id="occasionId" />
+            <div class="form-section" style="border-bottom:none; padding-bottom:0; margin-bottom:0;">
+              <div class="form-row full">
+                <div class="form-group required-field">
+                  <label for="occasionName">Name</label>
+                  <input id="occasionName" type="text" placeholder="e.g., Wedding, Party, Daily Wear" required />
+                </div>
+              </div>
+              <div class="form-row full">
+                <div class="form-group">
+                  <label for="occasionSlug">Slug</label>
+                  <input id="occasionSlug" type="text" placeholder="Auto-generated from name if left empty" />
+                  <div class="help-text">Leave empty to auto-generate from name</div>
+                </div>
+              </div>
+              <div class="form-row full">
+                <div class="form-group">
+                  <label for="occasionStatus">Status</label>
+                  <select id="occasionStatus">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row full">
+                <div class="form-group">
+                  <label>Image</label>
+                  <input type="file" id="occasionImageFile" accept="image/*" style="padding:8px; border:2px dashed #ddd; border-radius:4px; background:#f8f9fa; cursor:pointer;" />
+                  <div id="occasionImagePreview" class="thumb-grid" style="margin-top:10px;"></div>
+                </div>
+              </div>
+              <div id="occasionFormError" class="error"></div>
+            </div>
+          </form>
+        </div>
+        <div class="large-modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelOccasionBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveOccasionBtn" form="occasionForm">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteOccasionModal" class="delete-modal-overlay">
+      <div class="delete-modal">
+        <div class="delete-modal-header">
+          <h3>Delete Occasion</h3>
+        </div>
+        <div class="delete-modal-body">
+          <p>Are you sure you want to delete this occasion? Products using this occasion will have their occasion cleared.</p>
+        </div>
+        <div class="delete-modal-actions">
+          <button type="button" class="btn btn-secondary" id="deleteOccasionCancel">Cancel</button>
+          <button type="button" class="btn btn-danger" id="deleteOccasionConfirm">Delete</button>
+        </div>
+      </div>
+    </div>
+    `,
+    scripts: `
+      <script src="/static/js/admin-occasions.js"></script>
+    `
+  })
+%>

@@ -1,0 +1,95 @@
+<%- 
+  include('../../partials/admin_layout', {
+    title: title,
+    apiBaseUrl: apiBaseUrl,
+    body: `
+    <div class="card">
+      <div class="card-header">
+        <div class="top-actions">
+          <h1>Genders</h1>
+          <button class="btn btn-primary" id="newGenderBtn">+ New Gender</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <p style="margin-top:0; margin-bottom:16px; font-size:14px; color:#555;">
+          Manage gender options used when assigning products (e.g., Male, Female, Unisex).
+        </p>
+        <div id="gendersTableLoader" class="table-loader">
+          <div class="loader"></div>
+          <div class="loader-text">Loading genders...</div>
+        </div>
+        <div id="gendersContainer" style="display:none;">
+          <table id="gendersTable">
+            <thead>
+              <tr>
+                <th style="width:40px;">#</th>
+                <th>Name</th>
+                <th>Slug</th>
+                <th style="width:120px;">Status</th>
+                <th style="width:120px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gender Modal -->
+    <div id="genderModal" class="large-modal">
+      <div class="large-modal-content" style="max-width:480px;">
+        <div class="large-modal-header">
+          <h2 id="genderModalTitle">New Gender</h2>
+          <button type="button" class="btn btn-secondary" id="closeGenderModal" style="padding:6px 12px;">×</button>
+        </div>
+        <div class="large-modal-body">
+          <form id="genderForm">
+            <div class="form-section" style="border-bottom:none; padding-bottom:0; margin-bottom:0;">
+              <div class="form-row full">
+                <div class="form-group required-field">
+                  <label for="genderName">Name</label>
+                  <input id="genderName" type="text" placeholder="e.g., Male" required />
+                </div>
+              </div>
+              <div class="form-row full">
+                <div class="form-group">
+                  <label for="genderStatus">Status</label>
+                  <select id="genderStatus">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div id="genderFormError" class="error"></div>
+            </div>
+          </form>
+        </div>
+        <div class="large-modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelGenderBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveGenderBtn" form="genderForm">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteGenderModal" class="delete-modal-overlay">
+      <div class="delete-modal">
+        <div class="delete-modal-header">
+          <h3>Delete Gender</h3>
+        </div>
+        <div class="delete-modal-body">
+          <p>Are you sure you want to delete this gender? Existing products will keep their current gender text.</p>
+        </div>
+        <div class="delete-modal-actions">
+          <button type="button" class="btn btn-secondary" id="deleteGenderCancel">Cancel</button>
+          <button type="button" class="btn btn-danger" id="deleteGenderConfirm">Delete</button>
+        </div>
+      </div>
+    </div>
+    `,
+    scripts: `
+      <script src="/static/js/admin-genders.js"></script>
+    `
+  })
+%>
+

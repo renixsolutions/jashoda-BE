@@ -1,0 +1,116 @@
+<%-
+  include('../partials/admin_layout', {
+    title: title,
+    apiBaseUrl: apiBaseUrl,
+    body: `
+    <div class="card">
+      <div class="card-header">
+        <div class="top-actions">
+          <h1>Dashboard</h1>
+        </div>
+      </div>
+      <div class="card-body">
+        <p style="margin-top:0; margin-bottom:16px; font-size:14px; color:#6b7280;">
+          Quick snapshot of catalog, categories and orders.
+        </p>
+        <div class="stat-grid">
+          <!-- Orders row -->
+          <div class="stat-card stat-card-orders-total">
+            <div class="stat-label">Total Orders</div>
+            <div class="stat-value" id="statTotalOrders">--</div>
+            <div class="stat-meta">All customer orders</div>
+          </div>
+          <div class="stat-card stat-card-orders-completed">
+            <div class="stat-label">Completed Orders</div>
+            <div class="stat-value" id="statCompletedOrders">--</div>
+            <div class="stat-meta">Delivered orders</div>
+          </div>
+          <div class="stat-card stat-card-orders-pending">
+            <div class="stat-label">Pending Orders</div>
+            <div class="stat-value" id="statPendingOrders">--</div>
+            <div class="stat-meta">Awaiting processing</div>
+          </div>
+
+          <!-- Catalog row -->
+          <div class="stat-card stat-card-products">
+            <div class="stat-label">Total Products</div>
+            <div class="stat-value" id="statTotalProducts">--</div>
+            <div class="stat-meta">From admin products API</div>
+          </div>
+          <div class="stat-card stat-card-categories-total">
+            <div class="stat-label">Total Categories</div>
+            <div class="stat-value" id="statTotalCategories">--</div>
+            <div class="stat-meta">All active categories</div>
+          </div>
+          <div class="stat-card stat-card-categories-parent">
+            <div class="stat-label">Top-Level Categories</div>
+            <div class="stat-value" id="statParentCategories">--</div>
+            <div class="stat-meta">Root categories</div>
+          </div>
+          <div class="stat-card stat-card-categories-sub">
+            <div class="stat-label">Subcategories</div>
+            <div class="stat-value" id="statSubcategories">--</div>
+            <div class="stat-meta">Nested under parents</div>
+          </div>
+          <div class="stat-card stat-card-users-total">
+            <div class="stat-label">Total Users</div>
+            <div class="stat-value" id="statTotalUsers">--</div>
+            <div class="stat-meta">All registered users</div>
+          </div>
+          <div class="stat-card stat-card-users-active">
+            <div class="stat-label">Active Users</div>
+            <div class="stat-value" id="statActiveUsers">--</div>
+            <div class="stat-meta">Users with active status</div>
+          </div>
+        </div>
+
+        <div style="margin-top:24px; display:flex; gap:18px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:220px;" class="card">
+            <div class="card-body">
+              <h2 style="margin-top:0; font-size:15px;">Products</h2>
+              <p style="font-size:13px; color:#6b7280;">Create, update, and manage product catalog and images.</p>
+              <a class="btn btn-primary" href="/admin/products">Go to Products</a>
+            </div>
+          </div>
+          <div style="flex:1; min-width:220px;" class="card">
+            <div class="card-body">
+              <h2 style="margin-top:0; font-size:15px;">Categories</h2>
+              <p style="font-size:13px; color:#6b7280;">Manage product categories and category images.</p>
+              <a class="btn btn-primary" href="/admin/categories">Go to Categories</a>
+            </div>
+          </div>
+          <div style="flex:1; min-width:260px;" class="card">
+            <div class="card-body">
+              <h2 style="margin-top:0; font-size:15px;">Recent Orders</h2>
+              <p style="font-size:13px; color:#6b7280; margin-bottom:10px;">Latest activity from your store.</p>
+              <div id="recentOrdersList" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:24px; display:flex; gap:18px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:260px;" class="card">
+            <div class="card-body">
+              <h2 style="margin-top:0; font-size:15px;">Orders by Status</h2>
+              <p style="font-size:13px; color:#6b7280; margin-bottom:10px;">Quick overview of order distribution.</p>
+              <div id="ordersStatusChart"></div>
+            </div>
+          </div>
+          <div style="flex:1; min-width:260px;" class="card">
+            <div class="card-body">
+              <h2 style="margin-top:0; font-size:15px;">Catalog Overview</h2>
+              <p style="font-size:13px; color:#6b7280; margin-bottom:10px;">Products vs. categories at a glance.</p>
+              <div id="catalogChart"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    `,
+    scripts: `
+      <script src="/static/js/admin-dashboard.js"></script>
+    `
+  })
+%>
+
+

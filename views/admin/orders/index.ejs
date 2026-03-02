@@ -1,0 +1,102 @@
+<%-
+  include('../../partials/admin_layout', {
+    title: title,
+    apiBaseUrl: apiBaseUrl,
+    body: `
+    <div class="card">
+      <div class="card-header">
+        <div class="top-actions">
+          <h1>Orders</h1>
+          <div style="display:flex; align-items:center; gap:12px; margin-left:auto; flex-wrap:wrap;">
+            <select id="orderStatusFilter" class="top-search-input" style="max-width:180px;">
+              <option value="">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="processing">Processing</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <input id="orderSearch" type="text" class="top-search-input" placeholder="Search by order number..." />
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="ordersTableLoader" class="table-loader">
+          <div class="loader"></div>
+          <div class="loader-text">Loading orders...</div>
+        </div>
+        <div id="ordersContainer" style="display:none;">
+          <table id="ordersTable">
+            <thead>
+              <tr>
+                <th style="width:140px;">Order #</th>
+                <th style="width:110px;">User ID</th>
+                <th style="width:120px;">Total (₹)</th>
+                <th style="width:140px;">Payment</th>
+                <th style="width:120px;">Pay Status</th>
+                <th style="width:120px;">Status</th>
+                <th style="width:160px;">Placed At</th>
+                <th style="width:140px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="ordersPagination" class="pagination"></div>
+        </div>
+        <div id="ordersCardList" class="mobile-card-list"></div>
+        <div id="ordersEmptyState" class="empty-state">
+          <span>No orders found.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div id="orderDetailsModal" class="large-modal">
+      <div class="large-modal-content">
+        <div class="large-modal-header">
+          <h2 id="orderDetailsTitle">Order Details</h2>
+          <button type="button" class="btn btn-secondary" id="closeOrderDetailsModal" style="padding:8px 14px; min-width:40px;">×</button>
+        </div>
+        <div class="large-modal-body" id="orderDetailsBody">
+        </div>
+        <div class="large-modal-footer">
+          <button type="button" class="btn btn-secondary" id="closeOrderDetailsFooter">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Update Status Modal -->
+    <div id="orderStatusModal" class="delete-modal-overlay">
+      <div class="delete-modal">
+        <div class="delete-modal-header">
+          <h3>Update Order Status</h3>
+        </div>
+        <div class="delete-modal-body">
+          <p>Select a new status for this order.</p>
+          <div class="field" style="margin-top:16px;">
+            <label for="orderStatusSelect">Status</label>
+            <select id="orderStatusSelect">
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="processing">Processing</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div id="orderStatusError" class="error"></div>
+        </div>
+        <div class="delete-modal-actions">
+          <button type="button" class="btn btn-secondary" id="orderStatusCancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="orderStatusSave">Update</button>
+        </div>
+      </div>
+    </div>
+    `,
+    scripts: `
+      <script src="/static/js/admin-orders.js"></script>
+    `
+  })
+%>
+

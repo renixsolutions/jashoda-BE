@@ -1,0 +1,64 @@
+<%-
+  include('../../partials/admin_layout', {
+    title: title,
+    apiBaseUrl: apiBaseUrl,
+    body: `
+    <div class="card">
+      <div class="card-header">
+        <div class="top-actions">
+          <h1>Users</h1>
+          <div style="display:flex; align-items:center; gap:12px; margin-left:auto;">
+            <input id="userSearch" type="text" class="top-search-input" placeholder="Search by name, email..." />
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="usersTableLoader" class="table-loader">
+          <div class="loader"></div>
+          <div class="loader-text">Loading users...</div>
+        </div>
+        <div id="usersContainer" style="display:none;">
+          <table id="usersTable">
+            <thead>
+              <tr>
+                <th style="width:40px;">ID</th>
+                <th>Name</th>
+                <th style="width:200px;">Email</th>
+                <th style="width:140px;">Phone</th>
+                <th style="width:100px;">Status</th>
+                <th style="width:140px;">Created</th>
+                <th style="width:120px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="usersPagination" class="pagination"></div>
+        </div>
+        <div id="usersCardList" class="mobile-card-list"></div>
+        <div id="usersEmptyState" class="empty-state">
+          <span>No users found.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Details & Orders Modal -->
+    <div id="userDetailsModal" class="large-modal">
+      <div class="large-modal-content">
+        <div class="large-modal-header">
+          <h2 id="userDetailsTitle">User Details</h2>
+          <button type="button" class="btn btn-secondary" id="closeUserDetailsModal" style="padding:8px 14px; min-width:40px;">×</button>
+        </div>
+        <div class="large-modal-body" id="userDetailsBody">
+        </div>
+        <div class="large-modal-footer">
+          <button type="button" class="btn btn-secondary" id="closeUserDetailsFooter">Close</button>
+        </div>
+      </div>
+    </div>
+    `,
+    scripts: `
+      <script src="/static/js/admin-users.js"></script>
+    `
+  })
+%>
+

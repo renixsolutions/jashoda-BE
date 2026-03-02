@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Razorpay payment test</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 24px auto; padding: 0 16px; }
+    label { display: block; margin-top: 12px; font-weight: 600; }
+    input, button { width: 100%; padding: 10px; margin-top: 4px; }
+    button { margin-top: 12px; cursor: pointer; background: #0f766e; color: #fff; border: none; border-radius: 6px; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    button.secondary { background: #64748b; }
+    pre { background: #f1f5f9; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 13px; white-space: pre-wrap; word-break: break-all; }
+    .section { margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0; }
+    .error { color: #b91c1c; }
+    .success { color: #15803d; }
+  </style>
+</head>
+<body>
+  <h1>Razorpay payment test</h1>
+  <p>Create an order, pay with Razorpay (test mode), then see the signature and verify on your API.</p>
+  <p><strong>Open this page:</strong> <code>http://localhost:3000/static/razorpay-test.html</code> (or open the file directly).</p>
+
+  <label>API base URL</label>
+  <input type="text" id="apiBase" value="http://localhost:3000" placeholder="http://localhost:3000">
+
+  <label>Auth token (Bearer)</label>
+  <input type="password" id="token" placeholder="Paste JWT from login / verify-otp">
+
+  <label>Razorpay Key ID (test key, e.g. rzp_test_…)</label>
+  <input type="text" id="rzpKey" placeholder="rzp_test_xxxxx">
+
+  <div class="section">
+    <button type="button" id="btnCreate">1. Create order (Razorpay)</button>
+    <pre id="createResult">—</pre>
+    <button type="button" id="btnPay" disabled>2. Pay with Razorpay</button>
+  </div>
+
+  <div class="section">
+    <h2>Payment result (signature here)</h2>
+    <pre id="paymentResult">Complete step 2 to see razorpay_payment_id, razorpay_order_id, razorpay_signature.</pre>
+    <button type="button" id="btnVerify" class="secondary" disabled>3. Verify payment (POST /orders/verify-payment)</button>
+    <pre id="verifyResult">—</pre>
+  </div>
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    const apiBase = () => document.getElementById('apiBase').value.replace(/\/$/, '');
+    const token = () => document.getElementById('token').value.trim();
+    const rzpKey = () => document.getElementById('rzpKey').value.trim();
+
+    let lastOrder = null;
+
+    document.getElementById('btnCreate').onclick = async () => {
+      const base = apiBase();
+      const t = token();
+      const resultEl = document.getElementById('createResult');
+      if (!t) { resultEl.textContent = 'Set Auth token first.'; resultEl.className = 'error'; return; }
+      try {
+        const res = await fetch(base + '/api/v1/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t },
+          body: JSON.stringify({ payment_method: 'razorpay' })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          resultEl.textContent = (data.message || res.statusText) + '\n' + JSON.stringify(data, null, 2);
+          resultEl.className = 'error';
+          return;
+        }
+        lastOrder = data.data || data;
+        resultEl.textContent = 'order_id: ' + lastOrder.id + '\nrazorpay_order_id: ' + (lastOrder.razorpay_order_id || '') + '\namount: ' + (lastOrder.razorpay_amount || '') + ' paise';
+        resultEl.className = '';
+        document.getElementById('btnPay').disabled = !lastOrder.razorpay_order_id || !rzpKey();
+      } catch (e) {
+        resultEl.textContent = e.message;
+        resultEl.className = 'error';
+      }
+    };
+
+    document.getElementById('btnPay').onclick = () => {
+      const key = rzpKey();
+      if (!key || !lastOrder?.razorpay_order_id) return;
+      const options = {
+        key: key,
+        amount: lastOrder.razorpay_amount || 0,
+        currency: lastOrder.razorpay_currency || 'INR',
+        order_id: lastOrder.razorpay_order_id,
+        name: 'Jashoda Test',
+        handler: function (response) {
+          const payload = {
+            order_id: lastOrder.id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature
+          };
+          document.getElementById('paymentResult').textContent = JSON.stringify(payload, null, 2);
+          document.getElementById('paymentResult').className = 'success';
+          lastOrder._payload = payload;
+          document.getElementById('btnVerify').disabled = false;
+        }
+      };
+      const rzp = new Razorpay(options);
+      rzp.open();
+    };
+
+    document.getElementById('btnVerify').onclick = async () => {
+      if (!lastOrder?._payload) return;
+      const base = apiBase();
+      const t = token();
+      const resultEl = document.getElementById('verifyResult');
+      try {
+        const res = await fetch(base + '/api/v1/orders/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t },
+          body: JSON.stringify(lastOrder._payload)
+        });
+        const data = await res.json();
+        resultEl.textContent = JSON.stringify(data, null, 2);
+        resultEl.className = data.success ? 'success' : 'error';
+      } catch (e) {
+        resultEl.textContent = e.message;
+        resultEl.className = 'error';
+      }
+    };
+  </script>
+</body>
+</html>
