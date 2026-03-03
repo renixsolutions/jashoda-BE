@@ -14,7 +14,8 @@ const cartRoutes = require('../../app/cart/cart.routes');
 const orderRoutes = require('../../app/orders/order.routes');
 const orderAdminRoutes = require('../../app/orders/order.admin.routes');
 const favoriteRoutes = require('../../app/favorites/favorite.routes');
-
+const promoRoutes = require('../../app/promos/promo.routes');
+const adminPromoRoutes = require('../../app/promos/promo.admin.routes');
 const router = express.Router();
 
 // API version 1 routes
@@ -26,6 +27,7 @@ router.use('/products', productRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/genders', genderRoutes);
 router.use('/occasions', occasionRoutes);
+router.use('/promos', promoRoutes);
 
 // Customer APIs (authenticated)
 router.use('/cart', cartRoutes);
@@ -39,6 +41,7 @@ router.use('/admin/genders', adminGenderRoutes);
 router.use('/admin/occasions', adminOccasionRoutes);
 router.use('/admin/uploads', adminUploadRoutes);
 router.use('/admin/orders', orderAdminRoutes);
+router.use('/admin/promos', adminPromoRoutes);
 
 module.exports = router;
 
