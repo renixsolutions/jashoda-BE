@@ -8,38 +8,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // DOM Elements
-    const loader = document.getElementById('promosTableLoader');
-    const container = document.getElementById('promosContainer');
-    const tbody = document.getElementById('promosTableBody');
-    const newBtn = document.getElementById('newPromoBtn');
+    const loader = document.getElementById('storiesTableLoader');
+    const container = document.getElementById('storiesContainer');
+    const tbody = document.getElementById('storiesTableBody');
+    const newBtn = document.getElementById('newStoryBtn');
 
-    const modal = document.getElementById('promoModal');
-    const closePromoModal = document.getElementById('closePromoModal');
-    const cancelPromoBtn = document.getElementById('cancelPromoBtn');
-    const form = document.getElementById('promoForm');
-    const errorEl = document.getElementById('promoFormError');
-    const saveBtn = document.getElementById('savePromoBtn');
+    const modal = document.getElementById('storyModal');
+    const closeStoryModal = document.getElementById('closeStoryModal');
+    const cancelStoryBtn = document.getElementById('cancelStoryBtn');
+    const form = document.getElementById('storyForm');
+    const errorEl = document.getElementById('storyFormError');
+    const saveBtn = document.getElementById('saveStoryBtn');
 
-    const deleteModal = document.getElementById('deletePromoModal');
-    const deleteCancelBtn = document.getElementById('deletePromoCancel');
-    const deleteConfirmBtn = document.getElementById('deletePromoConfirm');
+    const deleteModal = document.getElementById('deleteStoryModal');
+    const deleteCancelBtn = document.getElementById('deleteStoryCancel');
+    const deleteConfirmBtn = document.getElementById('deleteStoryConfirm');
 
-    let promos = [];
+    let stories = [];
     let deleteId = null;
 
-    async function fetchPromos() {
+    async function fetchStories() {
         loader.style.display = 'block';
         container.style.display = 'none';
         try {
-            const res = await fetch(`${apiBase}/admin/promos`, {
+            const res = await fetch(`${apiBase}/admin/stories`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
-            promos = data.data || [];
+            stories = data.data || [];
             renderTable();
         } catch (err) {
-            alert('Error fetching promos: ' + err.message);
+            alert('Error fetching stories: ' + err.message);
         } finally {
             loader.style.display = 'none';
             container.style.display = 'block';
@@ -48,11 +48,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTable() {
         tbody.innerHTML = '';
-        if (promos.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No promo videos found</td></tr>`;
+        if (stories.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No story videos found</td></tr>`;
             return;
         }
-        promos.forEach(p => {
+        stories.forEach(p => {
             const tr = document.createElement('tr');
             const videoHtml = p.video_url
                 ? `<video src="${p.video_url}" style="width:150px; height:80px; object-fit:cover; border-radius:4px;" muted loop autoplay></video>`
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.edit-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const id = parseInt(e.target.getAttribute('data-id'));
-                window.editPromo(id);
+                window.editStory(id);
             });
         });
 
@@ -98,20 +98,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function hideModal() {
         modal.style.display = 'none';
         form.reset();
-        document.getElementById('promoId').value = '';
-        document.getElementById('promoVideoUrl').value = '';
-        document.getElementById('promoVideoPreview').innerHTML = '';
+        document.getElementById('storyId').value = '';
+        document.getElementById('storyVideoUrl').value = '';
+        document.getElementById('storyVideoPreview').innerHTML = '';
     }
 
-    [closePromoModal, cancelPromoBtn].forEach(b => b.addEventListener('click', hideModal));
+    [closeStoryModal, cancelStoryBtn].forEach(b => b.addEventListener('click', hideModal));
     newBtn.addEventListener('click', () => {
-        document.getElementById('promoModalTitle').textContent = 'New Promo Video';
-        document.getElementById('promoOrderIndex').value = '0';
-        document.getElementById('promoStatus').value = 'true';
+        document.getElementById('storyModalTitle').textContent = 'New Story Video';
+        document.getElementById('storyOrderIndex').value = '0';
+        document.getElementById('storyStatus').value = 'true';
         showModal();
     });
 
-    document.getElementById('promoVideoFile').addEventListener('change', async (e) => {
+    document.getElementById('storyVideoFile').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         const loader = document.getElementById('videoUploadLoader');
@@ -121,15 +121,15 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('video', file);
 
         try {
-            const res = await fetch(`${apiBase}/admin/uploads/promo-video`, {
+            const res = await fetch(`${apiBase}/admin/uploads/story-video`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Upload failed');
-            document.getElementById('promoVideoUrl').value = data.data.url;
-            document.getElementById('promoVideoPreview').innerHTML = `<video src="${data.data.url}" style="max-width:100%; height:150px;" controls autoplay muted></video>`;
+            document.getElementById('storyVideoUrl').value = data.data.url;
+            document.getElementById('storyVideoPreview').innerHTML = `<video src="${data.data.url}" style="max-width:100%; height:150px;" controls autoplay muted></video>`;
         } catch (err) {
             alert(err.message);
         } finally {
@@ -142,14 +142,14 @@ document.addEventListener('DOMContentLoaded', () => {
         errorEl.textContent = '';
         saveBtn.disabled = true;
 
-        const id = document.getElementById('promoId').value;
+        const id = document.getElementById('storyId').value;
         const payload = {
-            title: document.getElementById('promoTitle').value,
-            subtitle: document.getElementById('promoSubtitle').value,
-            link_url: document.getElementById('promoLinkUrl').value,
-            video_url: document.getElementById('promoVideoUrl').value,
-            order_index: parseInt(document.getElementById('promoOrderIndex').value) || 0,
-            is_active: document.getElementById('promoStatus').value === 'true'
+            title: document.getElementById('storyTitle').value,
+            subtitle: document.getElementById('storySubtitle').value,
+            link_url: document.getElementById('storyLinkUrl').value,
+            video_url: document.getElementById('storyVideoUrl').value,
+            order_index: parseInt(document.getElementById('storyOrderIndex').value) || 0,
+            is_active: document.getElementById('storyStatus').value === 'true'
         };
 
         if (!payload.video_url) {
@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             let res;
             if (id) {
-                res = await fetch(`${apiBase}/admin/promos/${id}`, {
+                res = await fetch(`${apiBase}/admin/stories/${id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(payload)
                 });
             } else {
-                res = await fetch(`${apiBase}/admin/promos`, {
+                res = await fetch(`${apiBase}/admin/stories`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
             hideModal();
-            fetchPromos();
+            fetchStories();
         } catch (err) {
             errorEl.textContent = err.message;
         } finally {
@@ -190,19 +190,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    window.editPromo = (id) => {
-        const p = promos.find(x => x.id === id);
+    window.editStory = (id) => {
+        const p = stories.find(x => x.id === id);
         if (!p) return;
-        document.getElementById('promoModalTitle').textContent = 'Edit Promo Video';
-        document.getElementById('promoId').value = p.id;
-        document.getElementById('promoTitle').value = p.title || '';
-        document.getElementById('promoSubtitle').value = p.subtitle || '';
-        document.getElementById('promoLinkUrl').value = p.link_url || '';
-        document.getElementById('promoVideoUrl').value = p.video_url || '';
-        document.getElementById('promoOrderIndex').value = p.order_index;
-        document.getElementById('promoStatus').value = p.is_active ? 'true' : 'false';
+        document.getElementById('storyModalTitle').textContent = 'Edit Story Video';
+        document.getElementById('storyId').value = p.id;
+        document.getElementById('storyTitle').value = p.title || '';
+        document.getElementById('storySubtitle').value = p.subtitle || '';
+        document.getElementById('storyLinkUrl').value = p.link_url || '';
+        document.getElementById('storyVideoUrl').value = p.video_url || '';
+        document.getElementById('storyOrderIndex').value = p.order_index;
+        document.getElementById('storyStatus').value = p.is_active ? 'true' : 'false';
         if (p.video_url) {
-            document.getElementById('promoVideoPreview').innerHTML = `<video src="${p.video_url}" style="max-width:100%; height:150px;" controls autoplay muted></video>`;
+            document.getElementById('storyVideoPreview').innerHTML = `<video src="${p.video_url}" style="max-width:100%; height:150px;" controls autoplay muted></video>`;
         }
         showModal();
     };
@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!deleteId) return;
         deleteConfirmBtn.disabled = true;
         try {
-            const res = await fetch(`${apiBase}/admin/promos/${deleteId}`, {
+            const res = await fetch(`${apiBase}/admin/stories/${deleteId}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.message);
             }
             deleteModal.style.display = 'none';
-            fetchPromos();
+            fetchStories();
         } catch (err) {
             alert('Delete failed: ' + err.message);
         } finally {
@@ -240,5 +240,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Init
-    fetchPromos();
+    fetchStories();
 });

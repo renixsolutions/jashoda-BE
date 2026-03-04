@@ -129,6 +129,26 @@ router.post('/promo-video', async (req, res) => {
   }
 });
 
+// Story videos
+router.post('/story-video', async (req, res) => {
+  try {
+    if (!req.files || !req.files.video) {
+      return sendError(res, 400, 'Video file is required');
+    }
+
+    const file = req.files.video;
+    if (!file.mimetype || !file.mimetype.startsWith('video/')) {
+      return sendError(res, 400, 'Only video uploads are allowed');
+    }
+
+    const url = await saveUploadedImage(file, 'stories');
+    return sendSuccess(res, 200, 'Story video uploaded successfully', { url });
+  } catch (error) {
+    logger.error('Story video upload error:', error);
+    return sendError(res, 500, 'Failed to upload story video');
+  }
+});
+
 module.exports = router;
 
 

@@ -1,0 +1,116 @@
+<%- include('../../partials/admin_layout', { title: title, apiBaseUrl: apiBaseUrl, body: ` <div class="card">
+    <div class="card-header">
+        <div class="top-actions">
+            <h1>Style Stories</h1>
+            <button class="btn btn-primary" id="newStoryBtn">+ New Story Video</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="storiesTableLoader" class="table-loader">
+            <div class="loader"></div>
+            <div class="loader-text">Loading styling videos...</div>
+        </div>
+        <div id="storiesContainer" style="display:none;">
+            <table id="storiesTable">
+                <thead>
+                    <tr>
+                        <th style="width:200px;">Video</th>
+                        <th>Title</th>
+                        <th>Link (Explore Now)</th>
+                        <th style="width:100px;">Status</th>
+                        <th style="width:100px;">Order</th>
+                        <th style="width:150px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="storiesTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+
+    <!-- Story Modal -->
+    <div id="storyModal" class="large-modal">
+        <div class="large-modal-content">
+            <div class="large-modal-header">
+                <h2 id="storyModalTitle">New Story Video</h2>
+                <button type="button" class="btn btn-secondary" id="closeStoryModal"
+                    style="padding:6px 12px;">×</button>
+            </div>
+            <div class="large-modal-body">
+                <form id="storyForm">
+                    <input type="hidden" id="storyId" />
+                    <input type="hidden" id="storyVideoUrl" />
+
+                    <div class="form-section">
+                        <div class="form-section-title">Video Info</div>
+                        <div class="form-row">
+                            <div class="form-group required-field">
+                                <label for="storyTitle">Title</label>
+                                <input id="storyTitle" placeholder="e.g. Styling Diamonds" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="storySubtitle">Subtitle</label>
+                                <input id="storySubtitle" placeholder="e.g. WITH SHIBANI." />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="storyLinkUrl">Link URL</label>
+                                <input id="storyLinkUrl" placeholder="e.g. /shop?category=gold" />
+                            </div>
+                            <div class="form-group">
+                                <label for="storyOrderIndex">Order / Sequence</label>
+                                <input id="storyOrderIndex" type="number" value="0" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="storyStatus">Status</label>
+                            <select id="storyStatus">
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">Upload Video</div>
+                        <div class="form-group">
+                            <label>File (MP4, WebM)</label>
+                            <input type="file" id="storyVideoFile" accept="video/mp4,video/webm"
+                                style="padding:8px; border:2px dashed #ddd; border-radius:4px; background:#f8f9fa; cursor:pointer;" />
+                            <div id="videoUploadLoader" style="display:none; margin-top:10px;">Uploading...</div>
+                        </div>
+                        <div id="storyVideoPreview" style="margin-top:16px;"></div>
+                    </div>
+
+                    <div id="storyFormError" class="error"></div>
+                </form>
+            </div>
+            <div class="large-modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelStoryBtn">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveStoryBtn" form="storyForm">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteStoryModal" class="delete-modal-overlay">
+        <div class="delete-modal">
+            <div class="delete-modal-header">
+                <h3>Delete Story</h3>
+            </div>
+            <div class="delete-modal-body">
+                <p>Are you sure you want to delete this styling video?</p>
+            </div>
+            <div class="delete-modal-actions">
+                <button type="button" class="btn btn-secondary" id="deleteStoryCancel">Cancel</button>
+                <button type="button" class="btn btn-danger" id="deleteStoryConfirm">Delete</button>
+            </div>
+        </div>
+    </div>
+    `,
+    scripts: `
+    <script src="/static/js/admin-stories.js"></script>
+    `
+    })
+    %>

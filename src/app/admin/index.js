@@ -77,6 +77,14 @@ router.get('/promos', (req, res) => {
   });
 });
 
+// Stories Videos management page
+router.get('/stories', (req, res) => {
+  res.render('admin/stories/index', {
+    title: 'Style Stories | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
 module.exports = router;
 
 
