@@ -4,31 +4,16 @@ const fs = require('fs');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { sendSuccess, sendError } = require('../../utils/response');
 const logger = require('../../utils/logger');
+const { uploadToS3 } = require('../../utils/s3.service');
 
 const router = express.Router();
 
 // Protect all upload routes
 router.use(authenticate);
 
-const ensureDirSync = (dirPath) => {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-};
-
 const saveUploadedImage = async (file, folder) => {
-  const uploadsRoot = path.join(__dirname, '../../../uploads', folder);
-  ensureDirSync(uploadsRoot);
-
-  const timestamp = Date.now();
-  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-  const filename = `${timestamp}_${safeName}`;
-  const savePath = path.join(uploadsRoot, filename);
-
-  await file.mv(savePath);
-
-  // URL that frontend can use
-  const urlPath = `/uploads/${folder}/${filename}`;
+  // Use S3 service instead of local file system
+  const urlPath = await uploadToS3(file, folder);
   return urlPath;
 };
 

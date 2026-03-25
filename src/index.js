@@ -22,7 +22,14 @@ app.use('/static', express.static(path.join(__dirname, '../public')));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "blob:", "*.amazonaws.com", "https://*"],
+    },
+  },
+}));
 
 // CORS configuration
 app.use(cors({
