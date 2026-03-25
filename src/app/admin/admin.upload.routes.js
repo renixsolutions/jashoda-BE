@@ -4,31 +4,16 @@ const fs = require('fs');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { sendSuccess, sendError } = require('../../utils/response');
 const logger = require('../../utils/logger');
+const { uploadToS3 } = require('../../utils/s3.service');
 
 const router = express.Router();
 
 // Protect all upload routes
 router.use(authenticate);
 
-const ensureDirSync = (dirPath) => {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-};
-
 const saveUploadedImage = async (file, folder) => {
-  const uploadsRoot = path.join(__dirname, '../../../uploads', folder);
-  ensureDirSync(uploadsRoot);
-
-  const timestamp = Date.now();
-  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-  const filename = `${timestamp}_${safeName}`;
-  const savePath = path.join(uploadsRoot, filename);
-
-  await file.mv(savePath);
-
-  // URL that frontend can use
-  const urlPath = `/uploads/${folder}/${filename}`;
+  // Use S3 service instead of local file system
+  const urlPath = await uploadToS3(file, folder);
   return urlPath;
 };
 
@@ -106,6 +91,46 @@ router.post('/review-image', async (req, res) => {
   } catch (error) {
     logger.error('Review image upload error:', error);
     return sendError(res, 500, 'Failed to upload review image');
+  }
+});
+
+// Promo videos
+router.post('/promo-video', async (req, res) => {
+  try {
+    if (!req.files || !req.files.video) {
+      return sendError(res, 400, 'Video file is required');
+    }
+
+    const file = req.files.video;
+    if (!file.mimetype || !file.mimetype.startsWith('video/')) {
+      return sendError(res, 400, 'Only video uploads are allowed');
+    }
+
+    const url = await saveUploadedImage(file, 'promos');
+    return sendSuccess(res, 200, 'Promo video uploaded successfully', { url });
+  } catch (error) {
+    logger.error('Promo video upload error:', error);
+    return sendError(res, 500, 'Failed to upload promo video');
+  }
+});
+
+// Story videos
+router.post('/story-video', async (req, res) => {
+  try {
+    if (!req.files || !req.files.video) {
+      return sendError(res, 400, 'Video file is required');
+    }
+
+    const file = req.files.video;
+    if (!file.mimetype || !file.mimetype.startsWith('video/')) {
+      return sendError(res, 400, 'Only video uploads are allowed');
+    }
+
+    const url = await saveUploadedImage(file, 'stories');
+    return sendSuccess(res, 200, 'Story video uploaded successfully', { url });
+  } catch (error) {
+    logger.error('Story video upload error:', error);
+    return sendError(res, 500, 'Failed to upload story video');
   }
 });
 

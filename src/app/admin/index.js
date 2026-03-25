@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/login', (req, res) => {
   res.render('admin/login', {
     title: 'Admin Login | ' + appConfig.appName,
-    apiBaseUrl: `${appConfig.appUrl}/api/v1`
+    apiBaseUrl: '/api/v1'
   });
 });
 
@@ -17,7 +17,7 @@ router.get('/login', (req, res) => {
 router.get('/', (req, res) => {
   res.render('admin/dashboard', {
     title: 'Admin Dashboard | ' + appConfig.appName,
-    apiBaseUrl: `${appConfig.appUrl}/api/v1`
+    apiBaseUrl: '/api/v1'
   });
 });
 
@@ -25,7 +25,7 @@ router.get('/', (req, res) => {
 router.get('/products', (req, res) => {
   res.render('admin/products/index', {
     title: 'Products | Admin',
-    apiBaseUrl: `${appConfig.appUrl}/api/v1`
+    apiBaseUrl: '/api/v1'
   });
 });
 
@@ -33,7 +33,7 @@ router.get('/products', (req, res) => {
 router.get('/orders', (req, res) => {
   res.render('admin/orders/index', {
     title: 'Orders | Admin',
-    apiBaseUrl: `${appConfig.appUrl}/api/v1`
+    apiBaseUrl: '/api/v1'
   });
 });
 
@@ -41,7 +41,7 @@ router.get('/orders', (req, res) => {
 router.get('/users', (req, res) => {
   res.render('admin/users/index', {
     title: 'Users | Admin',
-    apiBaseUrl: `${appConfig.appUrl}/api/v1`
+    apiBaseUrl: '/api/v1'
   });
 });
 
@@ -49,7 +49,7 @@ router.get('/users', (req, res) => {
 router.get('/categories', (req, res) => {
   res.render('admin/categories/index', {
     title: 'Categories | Admin',
-    apiBaseUrl: `${appConfig.appUrl}/api/v1`
+    apiBaseUrl: '/api/v1'
   });
 });
 
@@ -57,7 +57,7 @@ router.get('/categories', (req, res) => {
 router.get('/genders', (req, res) => {
   res.render('admin/genders/index', {
     title: 'Genders | Admin',
-    apiBaseUrl: `${appConfig.appUrl}/api/v1`
+    apiBaseUrl: '/api/v1'
   });
 });
 
@@ -65,7 +65,23 @@ router.get('/genders', (req, res) => {
 router.get('/occasions', (req, res) => {
   res.render('admin/occasions/index', {
     title: 'Occasions | Admin',
-    apiBaseUrl: `${appConfig.appUrl}/api/v1`
+    apiBaseUrl: '/api/v1'
+  });
+});
+
+// Promo Videos management page
+router.get('/promos', (req, res) => {
+  res.render('admin/promos/index', {
+    title: 'Promo Videos | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
+// Stories Videos management page
+router.get('/stories', (req, res) => {
+  res.render('admin/stories/index', {
+    title: 'Style Stories | Admin',
+    apiBaseUrl: '/api/v1'
   });
 });
 
