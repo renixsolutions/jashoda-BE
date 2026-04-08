@@ -26,4 +26,29 @@ async function decrementStock(productId, quantity) {
   return { stock_quantity: newQty, stock_status: stockStatus };
 }
 
-module.exports = { decrementStock };
+/**
+ * Increment product stock by quantity.
+ * @param {number} productId
+ * @param {number} quantity
+ * @returns {Promise<{ stock_quantity: number, stock_status: string }>}
+ */
+async function incrementStock(productId, quantity) {
+  const product = await ProductModel.findById(productId);
+  if (!product) throw new Error(`Product ${productId} not found`);
+
+  const current = parseInt(product.stock_quantity, 10) || 0;
+  const newQty = current + quantity;
+  const stockStatus = newQty <= 0 ? 'out_of_stock' : (newQty <= (product.low_stock_threshold || 5) ? 'low_stock' : 'in_stock');
+
+  await knex('products')
+    .where({ id: productId })
+    .update({
+      stock_quantity: newQty,
+      stock_status: stockStatus,
+      updated_at: knex.fn.now()
+    });
+
+  return { stock_quantity: newQty, stock_status: stockStatus };
+}
+
+module.exports = { decrementStock, incrementStock };

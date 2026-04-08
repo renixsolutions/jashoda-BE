@@ -11,11 +11,29 @@ class ProductModel {
   }
 
   static async findById(id) {
-    return knex('products').where({ id }).first();
+    const product = await knex('products')
+      .leftJoin('categories', knex.raw('products.category::text'), knex.raw('categories.id::text'))
+      .where('products.id', id)
+      .select('products.*', 'categories.name as category_name')
+      .first();
+
+    if (product) {
+      product.occasions = await this.getOccasions(product.id);
+    }
+    return product;
   }
 
   static async findBySlug(slug) {
-    return knex('products').where({ slug }).first();
+    const product = await knex('products')
+      .leftJoin('categories', knex.raw('products.category::text'), knex.raw('categories.id::text'))
+      .where('products.slug', slug)
+      .select('products.*', 'categories.name as category_name')
+      .first();
+
+    if (product) {
+      product.occasions = await this.getOccasions(product.id);
+    }
+    return product;
   }
 
   static async findAll(options = {}) {
@@ -64,6 +82,7 @@ class ProductModel {
     }
 
     let query = knex('products')
+      .leftJoin('categories', knex.raw('products.category::text'), knex.raw('categories.id::text'))
       .leftJoin(
         knex.raw(
           "(SELECT product_id, ROUND(AVG(rating)::numeric, 2) AS average_rating, COUNT(*)::int AS review_count FROM product_reviews WHERE status = 'approved' GROUP BY product_id) pr"
@@ -71,7 +90,7 @@ class ProductModel {
         'products.id',
         'pr.product_id'
       )
-      .select('products.*', 'pr.average_rating', 'pr.review_count');
+      .select('products.*', 'categories.name as category_name', 'pr.average_rating', 'pr.review_count');
 
     // Status filter (only active products for website)
     if (status) query = query.where('products.status', status);
@@ -84,13 +103,32 @@ class ProductModel {
       query = query.where('products.subcategory', subcategory);
     }
     if (occasion != null && occasion !== '') {
-      const occasionId = typeof occasion === 'number' ? occasion : parseInt(occasion, 10);
-      if (!isNaN(occasionId)) {
-        query = query.where('products.occasion_id', occasionId);
+      const occasionIds = Array.isArray(occasion) ? occasion : [occasion];
+      const validIds = occasionIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+      if (validIds.length > 0) {
+        query = query.whereIn('products.id', function() {
+          this.select('product_id').from('product_occasions').whereIn('occasion_id', validIds);
+        });
       }
     }
     if (gender) {
-      query = query.where('products.gender', gender);
+      if (isNaN(parseInt(gender, 10))) {
+        query = query.where('products.gender', gender);
+      } else {
+        // If it's an ID, also try to match the gender name just in case the DB stores names
+        try {
+          const genderDoc = await knex('genders').where('id', gender).first();
+          if (genderDoc) {
+            query = query.where((builder) => {
+              builder.where('products.gender', gender).orWhere('products.gender', genderDoc.name);
+            });
+          } else {
+            query = query.where('products.gender', gender);
+          }
+        } catch (e) {
+          query = query.where('products.gender', gender);
+        }
+      }
     }
     if (minPrice) {
       query = query.where('products.price', '>=', parseFloat(minPrice));
@@ -119,7 +157,9 @@ class ProductModel {
           builder.orWhereIn('products.category', catIds).orWhereIn('products.subcategory', catIds);
         }
         if (occIds.length > 0) {
-          builder.orWhereIn('products.occasion_id', occIds);
+          builder.orWhereIn('products.id', function() {
+            this.select('product_id').from('product_occasions').whereIn('occasion_id', occIds);
+          });
         }
         if (genIds.length > 0) {
           builder.orWhereIn('products.gender', genIds);
@@ -132,10 +172,28 @@ class ProductModel {
     if (category) countQuery.where('category', category);
     if (subcategory) countQuery.where('subcategory', subcategory);
     if (occasion != null && occasion !== '') {
-      const occasionId = typeof occasion === 'number' ? occasion : parseInt(occasion, 10);
-      if (!isNaN(occasionId)) countQuery.where('occasion_id', occasionId);
+      const occasionIds = Array.isArray(occasion) ? occasion : [occasion];
+      const validIds = occasionIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+      if (validIds.length > 0) {
+        countQuery.whereIn('id', function() {
+          this.select('product_id').from('product_occasions').whereIn('occasion_id', validIds);
+        });
+      }
     }
-    if (gender) countQuery.where('gender', gender);
+    if (gender) {
+      if (isNaN(parseInt(gender, 10))) {
+        countQuery.where('gender', gender);
+      } else {
+        const genderDoc = await knex('genders').where('id', gender).first();
+        if (genderDoc) {
+          countQuery.where((builder) => {
+            builder.where('gender', gender).orWhere('gender', genderDoc.name);
+          });
+        } else {
+          countQuery.where('gender', gender);
+        }
+      }
+    }
     if (minPrice) countQuery.where('price', '>=', parseFloat(minPrice));
     if (maxPrice) countQuery.where('price', '<=', parseFloat(maxPrice));
     if (metalType) countQuery.where('metal_type', metalType);
@@ -155,7 +213,9 @@ class ProductModel {
           builder.orWhereIn('category', catIds).orWhereIn('subcategory', catIds);
         }
         if (occIds.length > 0) {
-          builder.orWhereIn('occasion_id', occIds);
+          builder.orWhereIn('id', function() {
+            this.select('product_id').from('product_occasions').whereIn('occasion_id', occIds);
+          });
         }
         if (genIds.length > 0) {
           builder.orWhereIn('gender', genIds);
@@ -259,6 +319,54 @@ class ProductModel {
     return !!row;
   }
 
+  static async getAllReviews(options = {}) {
+    const { page = 1, limit = 20, status, productId } = options;
+    const offset = (page - 1) * limit;
+    const query = knex('product_reviews')
+      .leftJoin('products', 'product_reviews.product_id', 'products.id')
+      .leftJoin('users', 'product_reviews.user_id', 'users.id');
+
+    if (status) query.where('product_reviews.status', status);
+    if (productId) query.where('product_reviews.product_id', productId);
+
+    const [{ count }] = await query.clone().count('* as count');
+    const reviews = await query
+      .clone()
+      .select(
+        'product_reviews.*',
+        'products.name as product_name',
+        'users.name as user_name',
+        'users.email as user_email'
+      )
+      .orderBy('product_reviews.created_at', 'desc')
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      reviews,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: parseInt(count),
+        totalPages: Math.ceil(parseInt(count) / limit)
+      }
+    };
+  }
+
+  static async updateReview(reviewId, data) {
+    const sanitized = sanitizeObject(data);
+    sanitized.updated_at = knex.fn.now();
+    const [review] = await knex('product_reviews')
+      .where({ review_id: reviewId })
+      .update(sanitized)
+      .returning('*');
+    return review;
+  }
+
+  static async deleteReview(reviewId) {
+    return knex('product_reviews').where({ review_id: reviewId }).del();
+  }
+
   static async createReview(data) {
     const [review] = await knex('product_reviews')
       .insert({
@@ -337,6 +445,28 @@ class ProductModel {
 
   static async delete(id) {
     return knex('products').where({ id }).del();
+  }
+
+  static async getOccasions(productId) {
+    return knex('product_occasions')
+      .join('occasions', 'product_occasions.occasion_id', 'occasions.id')
+      .where('product_occasions.product_id', productId)
+      .select('occasions.*');
+  }
+
+  static async setOccasions(productId, occasionIds) {
+    if (!Array.isArray(occasionIds)) return [];
+    
+    await knex('product_occasions').where({ product_id: productId }).del();
+    
+    if (occasionIds.length === 0) return [];
+    
+    const rows = occasionIds.map(occId => ({
+      product_id: productId,
+      occasion_id: parseInt(occId, 10)
+    }));
+    
+    return knex('product_occasions').insert(rows).returning('*');
   }
 }
 

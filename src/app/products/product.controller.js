@@ -46,9 +46,8 @@ class ProductController {
       }
 
       let finalOccasion = occasion || occasionId;
-      if (finalOccasion && isNaN(parseInt(finalOccasion, 10))) {
-        const occDoc = await OccasionModel.findBySlug(finalOccasion);
-        if (occDoc) finalOccasion = occDoc.id.toString();
+      if (typeof finalOccasion === 'string' && finalOccasion.includes(',')) {
+        finalOccasion = finalOccasion.split(',').map(s => s.trim());
       }
 
       let finalGender = gender;
@@ -116,6 +115,34 @@ class ProductController {
       if (error.message.includes('Rating must be')) {
         return sendError(res, 400, error.message);
       }
+      return sendError(res, 500, error.message || messages.ERROR);
+    }
+  }
+
+  // Website: Check if user is eligible to review
+  static async checkReviewEligibility(req, res) {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      if (isNaN(productId)) {
+        return sendError(res, 400, 'Invalid product ID');
+      }
+      if (!req.user || !req.user.id) {
+        return sendSuccess(res, 200, 'User not logged in', { eligible: false, reason: 'login_required' });
+      }
+
+      const hasPurchased = await ProductService.hasUserPurchased(req.user.id, productId);
+      if (!hasPurchased) {
+        return sendSuccess(res, 200, 'Product not purchased', { eligible: false, reason: 'purchase_required' });
+      }
+
+      const alreadyReviewed = await ProductService.hasUserReviewed(req.user.id, productId);
+      if (alreadyReviewed) {
+        return sendSuccess(res, 200, 'Product already reviewed', { eligible: false, reason: 'already_reviewed' });
+      }
+
+      return sendSuccess(res, 200, 'User is eligible to review', { eligible: true });
+    } catch (error) {
+      logger.error('Check review eligibility error:', error);
       return sendError(res, 500, error.message || messages.ERROR);
     }
   }
@@ -213,6 +240,49 @@ class ProductController {
       if (error.message === messages.NOT_FOUND) {
         return sendError(res, 404, error.message);
       }
+      return sendError(res, 400, error.message || messages.ERROR);
+    }
+  }
+
+  // Admin: List all reviews
+  static async listReviews(req, res) {
+    try {
+      const { page = 1, limit = 20, status, productId } = req.query;
+      const result = await ProductService.getAllReviews({
+        page: parseInt(page),
+        limit: parseInt(limit),
+        status,
+        productId: productId ? parseInt(productId) : undefined
+      });
+      return sendSuccess(res, 200, 'Reviews fetched successfully', result.reviews, {
+        pagination: result.pagination
+      });
+    } catch (error) {
+      logger.error('List reviews error:', error);
+      return sendError(res, 500, error.message || messages.ERROR);
+    }
+  }
+
+  // Admin: Update review (approve/edit)
+  static async updateReview(req, res) {
+    try {
+      const { id } = req.params;
+      const review = await ProductService.updateReview(id, req.body);
+      return sendSuccess(res, 200, 'Review updated successfully', review);
+    } catch (error) {
+      logger.error('Update review error:', error);
+      return sendError(res, 400, error.message || messages.ERROR);
+    }
+  }
+
+  // Admin: Delete review
+  static async removeReview(req, res) {
+    try {
+      const { id } = req.params;
+      await ProductService.deleteReview(id);
+      return sendSuccess(res, 200, 'Review deleted successfully');
+    } catch (error) {
+      logger.error('Delete review error:', error);
       return sendError(res, 400, error.message || messages.ERROR);
     }
   }

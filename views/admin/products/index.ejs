@@ -3,6 +3,36 @@
     title: title,
     apiBaseUrl: apiBaseUrl,
     body: `
+    <style>
+      .checkbox-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        max-height: 150px;
+        overflow-y: auto;
+        background: #fff;
+      }
+      .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .checkbox-item input {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+      }
+      .checkbox-item label {
+        margin: 0;
+        cursor: pointer;
+        font-weight: normal;
+      }
+    </style>
     <div class="card">
       <div class="card-header">
         <div class="top-actions">
@@ -64,7 +94,10 @@
                 </div>
                 <div class="form-group">
                   <label for="productSku">SKU / Product Code</label>
-                  <input id="productSku" placeholder="e.g., JSL-RING-001" />
+                  <div style="display:flex; gap:8px;">
+                    <input id="productSku" placeholder="e.g., JSL-RING-001" style="flex:1;" />
+                    <button type="button" class="btn btn-secondary" id="generateSkuBtn" style="padding:4px 10px; font-size:12px; min-width:auto; height:38px;">Generate</button>
+                  </div>
                   <div class="help-text">Unique product identifier</div>
                 </div>
               </div>
@@ -83,11 +116,11 @@
                   <div class="help-text">Select category first</div>
                 </div>
                 <div class="form-group required-field">
-                  <label for="productOccasion">Occasion</label>
-                  <select id="productOccasion" required>
-                    <option value="">Select Occasion</option>
-                  </select>
-                  <div class="help-text">e.g. Wedding, Party, Daily Wear</div>
+                  <label>Occasions</label>
+                  <div id="productOccasionsList" class="checkbox-grid">
+                    <!-- Checkboxes will be dynamically loaded -->
+                  </div>
+                  <div class="help-text">Select one or more occasions</div>
                 </div>
               </div>
               <div class="form-row">

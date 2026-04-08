@@ -18,6 +18,8 @@ class ProductService {
     }
 
     const images = productData.images;
+    const occasionIds = productData.occasion_ids;
+    
     if (images) {
       if (!Array.isArray(images) || images.length < 1 || images.length > 5) {
         throw new Error('Products must have between 1 and 5 images');
@@ -31,12 +33,17 @@ class ProductService {
       image_url: primaryImage || null
     };
     delete productToCreate.images;
+    delete productToCreate.occasion_ids;
 
     const product = await ProductModel.create(productToCreate);
 
     const allImages = Array.isArray(images) ? images : primaryImage ? [primaryImage, ...otherImages] : [];
     if (allImages.length) {
       await ProductModel.setImages(product.id, allImages);
+    }
+
+    if (Array.isArray(occasionIds)) {
+      await ProductModel.setOccasions(product.id, occasionIds);
     }
 
     const productImages = allImages.length ? await ProductModel.getImages(product.id) : [];
@@ -82,6 +89,14 @@ class ProductService {
       average_rating: ratingAgg.average_rating,
       review_count: ratingAgg.review_count
     };
+  }
+
+  static async hasUserPurchased(userId, productId) {
+    return ProductModel.hasUserPurchasedProduct(userId, productId);
+  }
+
+  static async hasUserReviewed(userId, productId) {
+    return ProductModel.hasUserReviewedProduct(userId, productId);
   }
 
   static async getProductReviews(productId, options = {}) {
@@ -143,6 +158,18 @@ class ProductService {
     return reviewWithImages;
   }
 
+  static async getAllReviews(options = {}) {
+    return ProductModel.getAllReviews(options);
+  }
+
+  static async updateReview(reviewId, data) {
+    return ProductModel.updateReview(reviewId, data);
+  }
+
+  static async deleteReview(reviewId) {
+    return ProductModel.deleteReview(reviewId);
+  }
+
   static async getAll(options = {}) {
     const result = await ProductModel.findAll(options);
 
@@ -170,6 +197,8 @@ class ProductService {
     if (!product) throw new Error(messages.NOT_FOUND);
 
     const images = productData.images;
+    const occasionIds = productData.occasion_ids;
+    
     if (images) {
       if (!Array.isArray(images) || images.length < 1 || images.length > 5) {
         throw new Error('Products must have between 1 and 5 images');
@@ -180,11 +209,16 @@ class ProductService {
     // Images are stored in the separate product_images table.
     const dataWithoutImages = { ...productData };
     delete dataWithoutImages.images;
+    delete dataWithoutImages.occasion_ids;
 
     const updatedProduct = await ProductModel.update(id, dataWithoutImages);
 
     if (Array.isArray(images)) {
       await ProductModel.replaceImages(id, images);
+    }
+
+    if (Array.isArray(occasionIds)) {
+      await ProductModel.setOccasions(id, occasionIds);
     }
 
     const productImages = await ProductModel.getImages(id);

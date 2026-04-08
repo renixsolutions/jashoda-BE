@@ -29,6 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return data;
   }
 
+  function generateDefaultSKU() {
+    const prefix = 'JSH';
+    const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const randomNums = Math.floor(100 + Math.random() * 900);
+    return `${prefix}-${randomChars}-${randomNums}`;
+  }
+
   function renderProducts(result) {
     const tbody = document.querySelector('#productsTable tbody');
     const table = document.getElementById('productsTable');
@@ -282,23 +289,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return data.data || data;
   }
 
-  async function populateOccasionDropdown(selectedOccasionId = null) {
-    const select = document.getElementById('productOccasion');
-    if (!select) return;
+  async function populateOccasions(selectedOccasionIds = []) {
+    const container = document.getElementById('productOccasionsList');
+    if (!container) return;
     try {
       const occasions = await loadOccasions();
-      const previous = select.value;
-      select.innerHTML = '<option value="">Select Occasion</option>';
+      container.innerHTML = '';
       (occasions || []).forEach(occ => {
-        const opt = document.createElement('option');
-        opt.value = occ.id;
-        opt.textContent = occ.name;
-        if (selectedOccasionId != null && selectedOccasionId !== '' && parseInt(occ.id) === parseInt(selectedOccasionId)) {
-          opt.selected = true;
-        }
-        select.appendChild(opt);
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        const isChecked = selectedOccasionIds.some(id => parseInt(id) === parseInt(occ.id));
+        div.innerHTML = `
+          <input type="checkbox" id="occ_${occ.id}" value="${occ.id}" ${isChecked ? 'checked' : ''} name="productOccasions">
+          <label for="occ_${occ.id}">${occ.name}</label>
+        `;
+        container.appendChild(div);
       });
-      if (!selectedOccasionId && previous) select.value = previous;
     } catch (err) {
       console.error('Failed to load occasions:', err);
     }
@@ -435,11 +441,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Basic Info
     document.getElementById('productId').value = product ? product.id : '';
     document.getElementById('productName').value = product ? product.name : '';
-    document.getElementById('productSku').value = product ? (product.sku || '') : '';
+    document.getElementById('productSku').value = product ? (product.sku || '') : generateDefaultSKU();
     
     // Load categories, occasions and genders first, then set selected values
     await populateCategoryDropdown();
-    await populateOccasionDropdown(product ? (product.occasion_id ?? '') : null);
+    const occasionIds = product && product.occasions ? product.occasions.map(o => o.id) : (product && product.occasion_id ? [product.occasion_id] : []);
+    await populateOccasions(occasionIds);
     if (product && product.category) {
       const categorySelect = document.getElementById('productCategory');
       if (categorySelect) {
@@ -480,7 +487,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     await populateGenderDropdown(product ? (product.gender || '') : null);
-    document.getElementById('productOccasion').value = product && product.occasion_id ? String(product.occasion_id) : '';
     document.getElementById('productGender').value = product ? (product.gender || '') : '';
     document.getElementById('productBrand').value = product ? (product.brand || '') : '';
     document.getElementById('productShortDescription').value = product ? (product.short_description || '') : '';
@@ -554,8 +560,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!category) errors.push({ id: 'productCategory', message: 'Category is required' });
     const subcategory = document.getElementById('productSubcategory')?.value?.trim();
     if (!subcategory) errors.push({ id: 'productSubcategory', message: 'Subcategory is required' });
-    const occasionVal = document.getElementById('productOccasion')?.value?.trim();
-    if (!occasionVal) errors.push({ id: 'productOccasion', message: 'Occasion is required' });
+    
+    const selectedOccasions = Array.from(document.querySelectorAll('input[name="productOccasions"]:checked')).map(el => el.value);
+    if (selectedOccasions.length === 0) errors.push({ id: 'productOccasionsList', message: 'At least one occasion is required' });
+    
     if (!status) errors.push({ id: 'productStatus', message: 'Status is required' });
     const price = priceVal !== '' && priceVal !== undefined ? parseFloat(priceVal) : NaN;
     if (isNaN(price) || price < 0) errors.push({ id: 'productPrice', message: 'Base price is required and must be 0 or greater' });
@@ -604,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sku = document.getElementById('productSku').value.trim();
     const category = document.getElementById('productCategory').value.trim();
     const subcategory = document.getElementById('productSubcategory').value.trim();
-    const occasionId = document.getElementById('productOccasion').value.trim();
+    const selectedOccasions = Array.from(document.querySelectorAll('input[name="productOccasions"]:checked')).map(el => parseInt(el.value));
     const gender = document.getElementById('productGender').value || null;
     const brand = document.getElementById('productBrand').value.trim();
     const shortDescription = document.getElementById('productShortDescription').value.trim();
@@ -652,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Build payload; use undefined for empty optionals so we don't send null (backend rejects null)
     const payload = {
       name, category, subcategory, price, description, status,
-      occasion_id: occasionId ? parseInt(occasionId, 10) : undefined,
+      occasion_ids: selectedOccasions,
       gender: gender || undefined,
       sku: sku || undefined,
       subcategory: subcategory || undefined,
@@ -778,11 +786,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Init bindings
-  requireAuth();
   buildCategoryMap();
   loadProducts();
   populateCategoryDropdown();
-  populateOccasionDropdown();
+  populateOccasions();
   populateGenderDropdown();
 
   updateImagesPreview();
@@ -800,6 +807,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const newBtn = document.getElementById('newProductBtn');
   if (newBtn) newBtn.addEventListener('click', () => openProductModal(null));
+
+  const skuGenBtn = document.getElementById('generateSkuBtn');
+  if (skuGenBtn) {
+    skuGenBtn.addEventListener('click', () => {
+      const skuInput = document.getElementById('productSku');
+      if (skuInput) skuInput.value = generateDefaultSKU();
+    });
+  }
 
   const cancelBtn = document.getElementById('cancelProductBtn');
   if (cancelBtn) cancelBtn.addEventListener('click', closeProductModal);
