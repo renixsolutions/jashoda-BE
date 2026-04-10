@@ -51,6 +51,7 @@ class ProductService {
     return {
       ...product,
       image_url: product.image_url ? toFullUrl(product.image_url, config.appUrl) : product.image_url,
+      video_url: product.video_url ? toFullUrl(product.video_url, config.appUrl) : product.video_url,
       images: withFullImageUrls(productImages)
     };
   }
@@ -67,6 +68,7 @@ class ProductService {
     return {
       ...product,
       image_url: product.image_url ? toFullUrl(product.image_url, config.appUrl) : product.image_url,
+      video_url: product.video_url ? toFullUrl(product.video_url, config.appUrl) : product.video_url,
       images: withFullImageUrls(images),
       average_rating: ratingAgg.average_rating,
       review_count: ratingAgg.review_count
@@ -85,6 +87,7 @@ class ProductService {
     return {
       ...product,
       image_url: product.image_url ? toFullUrl(product.image_url, config.appUrl) : product.image_url,
+      video_url: product.video_url ? toFullUrl(product.video_url, config.appUrl) : product.video_url,
       images: withFullImageUrls(images),
       average_rating: ratingAgg.average_rating,
       review_count: ratingAgg.review_count
@@ -106,7 +109,10 @@ class ProductService {
     const baseUrl = config.appUrl;
     result.reviews = result.reviews.map((r) => ({
       ...r,
-      images: (r.images || []).map((img) => img.url ? toFullUrl(img.url, baseUrl) : img.url)
+      media: (r.images || []).map((m) => ({
+        url: m.url ? toFullUrl(m.url, baseUrl) : m.url,
+        type: m.type || 'image'
+      }))
     }));
     return result;
   }
@@ -130,9 +136,9 @@ class ProductService {
       throw new Error('Rating must be between 1 and 5');
     }
 
-    const images = Array.isArray(data.images) ? data.images : [];
-    if (images.length > 3) {
-      throw new Error('You can upload at most 3 images with your review');
+    const media = Array.isArray(data.media) ? data.media : [];
+    if (media.length > 5) {
+      throw new Error('You can upload at most 5 photos or videos with your review');
     }
 
     const review = await ProductModel.createReview({
@@ -144,22 +150,33 @@ class ProductService {
       is_verified_purchase: true
     });
 
-    if (images.length > 0) {
-      const urls = images.map((i) => (typeof i === 'string' ? i : i.url || i));
-      await ProductModel.setReviewImages(review.review_id, urls);
+    if (media.length > 0) {
+      await ProductModel.setReviewImages(review.review_id, media);
     }
 
-    const reviewImages = await ProductModel.getReviewImagesByReviewIds([review.review_id]);
+    const reviewMedia = await ProductModel.getReviewImagesByReviewIds([review.review_id]);
     const baseUrl = config.appUrl;
-    const reviewWithImages = {
+    const reviewWithMedia = {
       ...review,
-      images: reviewImages.map((img) => img.url ? toFullUrl(img.url, baseUrl) : img.url)
+      media: reviewMedia.map((m) => ({
+        url: m.url ? toFullUrl(m.url, baseUrl) : m.url,
+        type: m.type || 'image'
+      }))
     };
-    return reviewWithImages;
+    return reviewWithMedia;
   }
 
   static async getAllReviews(options = {}) {
-    return ProductModel.getAllReviews(options);
+    const result = await ProductModel.getAllReviews(options);
+    const baseUrl = config.appUrl;
+    result.reviews = result.reviews.map((r) => ({
+      ...r,
+      media: (r.media || []).map((m) => ({
+        ...m,
+        url: m.url ? toFullUrl(m.url, baseUrl) : m.url
+      }))
+    }));
+    return result;
   }
 
   static async updateReview(reviewId, data) {
@@ -226,6 +243,7 @@ class ProductService {
     return {
       ...updatedProduct,
       image_url: updatedProduct.image_url ? toFullUrl(updatedProduct.image_url, config.appUrl) : updatedProduct.image_url,
+      video_url: updatedProduct.video_url ? toFullUrl(updatedProduct.video_url, config.appUrl) : updatedProduct.video_url,
       images: withFullImageUrls(productImages)
     };
   }

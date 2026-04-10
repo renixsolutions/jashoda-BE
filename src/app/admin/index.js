@@ -45,6 +45,14 @@ router.get('/users', (req, res) => {
   });
 });
 
+// Reviews management page
+router.get('/reviews', (req, res) => {
+  res.render('admin/reviews/index', {
+    title: 'Reviews | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
 // Categories management page
 router.get('/categories', (req, res) => {
   res.render('admin/categories/index', {

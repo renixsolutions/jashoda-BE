@@ -31,10 +31,13 @@ const completeRegistrationValidation = [
   validate
 ];
 
+const { authenticate } = require('../../middlewares/auth.middleware');
+
 router.post('/login', loginValidation, AuthController.login);
 router.post('/request-otp', requestOtpValidation, AuthController.requestOtp);
 router.post('/verify-otp', verifyOtpValidation, AuthController.verifyOtp);
 router.post('/complete-registration', completeRegistrationValidation, AuthController.completeRegistration);
 router.get('/verify-email', AuthController.verifyEmail);
+router.post('/resend-verification', authenticate, AuthController.resendVerification);
 
 module.exports = router;

@@ -1,0 +1,70 @@
+<%-
+  include('../../partials/admin_layout', {
+    title: title,
+    apiBaseUrl: apiBaseUrl,
+    body: `
+    <div class="card">
+      <div class="card-header">
+        <div class="top-actions">
+          <h1>Product Reviews</h1>
+          <div style="display:flex; align-items:center; gap:12px; margin-left:auto;">
+            <select id="statusFilter" class="btn btn-secondary" style="height: 38px;">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+            <input id="reviewSearch" type="text" class="top-search-input" placeholder="Search by user or description..." />
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="reviewsTableLoader" class="table-loader">
+          <div class="loader"></div>
+          <div class="loader-text">Loading reviews...</div>
+        </div>
+        <div id="reviewsContainer" style="display:none;">
+          <table id="reviewsTable">
+            <thead>
+              <tr>
+                <th style="width:40px;">ID</th>
+                <th style="width:150px;">User</th>
+                <th>Review</th>
+                <th style="width:60px;">Rating</th>
+                <th style="width:100px;">Status</th>
+                <th style="width:130px;">Date</th>
+                <th style="width:150px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="reviewsPagination" class="pagination"></div>
+        </div>
+        <div id="reviewsCardList" class="mobile-card-list"></div>
+        <div id="reviewsEmptyState" class="empty-state">
+          <span>No reviews found.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review Details Modal -->
+    <div id="reviewDetailsModal" class="large-modal">
+      <div class="large-modal-content">
+        <div class="large-modal-header">
+          <h2 id="reviewDetailsTitle">Review Details</h2>
+          <button type="button" class="btn btn-secondary" id="closeReviewModal" style="padding:8px 14px; min-width:40px;">×</button>
+        </div>
+        <div class="large-modal-body" id="reviewDetailsBody">
+           <!-- Loaded dynamically -->
+        </div>
+        <div class="large-modal-footer">
+          <button type="button" class="btn btn-secondary" id="closeReviewFooter">Close</button>
+        </div>
+      </div>
+    </div>
+    `,
+    scripts: `
+      <script src="/static/js/admin-reviews.js"></script>
+    `
+  })
+%>

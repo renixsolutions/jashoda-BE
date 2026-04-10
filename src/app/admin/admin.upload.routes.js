@@ -94,6 +94,30 @@ router.post('/review-image', async (req, res) => {
   }
 });
 
+// Review media (images/videos); supports multiple formats
+router.post('/review-media', async (req, res) => {
+  try {
+    if (!req.files || !req.files.media) {
+      return sendError(res, 400, 'Media file is required');
+    }
+
+    const file = req.files.media;
+    let type = 'image';
+    
+    if (file.mimetype.startsWith('video/')) {
+      type = 'video';
+    } else if (!file.mimetype.startsWith('image/')) {
+      return sendError(res, 400, 'Only image and video uploads are allowed');
+    }
+
+    const url = await saveUploadedImage(file, 'reviews');
+    return sendSuccess(res, 200, 'Review media uploaded successfully', { url, type });
+  } catch (error) {
+    logger.error('Review media upload error:', error);
+    return sendError(res, 500, 'Failed to upload review media');
+  }
+});
+
 // Promo videos
 router.post('/promo-video', async (req, res) => {
   try {

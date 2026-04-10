@@ -534,6 +534,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set images array from product data
     productImages = product && product.images ? product.images.map(i => i.url || i) : [];
     updateImagesPreview();
+
+    // Set video
+    const videoUrl = product ? (product.video_url || '') : '';
+    document.getElementById('productVideoUrl').value = videoUrl;
+    const videoPreview = document.getElementById('productVideoPreview');
+    const videoPlayer = document.getElementById('productVideoPlayer');
+    const videoStatus = document.getElementById('productVideoUploadStatus');
+    if (videoUrl) {
+      videoPlayer.src = videoUrl;
+      videoPreview.style.display = 'block';
+    } else {
+      videoPreview.style.display = 'none';
+      videoPlayer.src = '';
+    }
+    videoStatus.textContent = '';
+    document.getElementById('productVideoFile').value = '';
     
     clearProductFormValidation();
     document.getElementById('productFormError').textContent = '';
@@ -699,6 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (payload[key] === undefined || payload[key] === null) delete payload[key];
     });
     if (productImages.length) payload.images = productImages;
+    if (document.getElementById('productVideoUrl').value) payload.video_url = document.getElementById('productVideoUrl').value;
 
     try {
       const url = id ? `${API_BASE}/admin/products/${id}` : `${API_BASE}/admin/products`;
@@ -1069,6 +1086,62 @@ document.addEventListener('DOMContentLoaded', () => {
       isDragging = false;
     });
   }
+
+  // Video Upload
+  document.getElementById('productVideoFile')?.addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const status = document.getElementById('productVideoUploadStatus');
+    const urlInput = document.getElementById('productVideoUrl');
+    const preview = document.getElementById('productVideoPreview');
+    const player = document.getElementById('productVideoPlayer');
+
+    if (!file.type.startsWith('video/')) {
+      if (window.showToast) window.showToast('error', 'Please select a valid video file');
+      return;
+    }
+
+    status.textContent = 'Uploading video...';
+    status.style.color = '#832729';
+
+    try {
+      const formData = new FormData();
+      formData.append('video', file);
+
+      const token = requireAuth();
+      const res = await fetch(`${UPLOAD_BASE}/promo-video`, { 
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Upload failed');
+
+      const url = data.data && data.data.url ? data.data.url : data.url;
+      urlInput.value = url;
+      player.src = url;
+      preview.style.display = 'block';
+      status.textContent = 'Video uploaded successfully';
+      status.style.color = '#16a34a';
+      if (window.showToast) window.showToast('success', 'Video uploaded');
+    } catch (err) {
+      status.textContent = 'Upload failed: ' + err.message;
+      status.style.color = '#c62828';
+      if (window.showToast) window.showToast('error', err.message);
+    }
+  });
+
+  document.getElementById('removeProductVideo')?.addEventListener('click', () => {
+    document.getElementById('productVideoUrl').value = '';
+    document.getElementById('productVideoFile').value = '';
+    document.getElementById('productVideoPreview').style.display = 'none';
+    document.getElementById('productVideoPlayer').src = '';
+    document.getElementById('productVideoUploadStatus').textContent = '';
+  });
 });
 
 

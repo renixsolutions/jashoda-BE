@@ -265,9 +265,15 @@ class ProductModel {
   static async getReviewsForProduct(productId, options = {}) {
     const { page = 1, limit = 10 } = options;
     const offset = (page - 1) * limit;
-    const whereClause = { product_id: productId, status: 'approved' };
+    const whereClause = { 'product_reviews.product_id': productId, 'product_reviews.status': 'approved' };
     const [reviews, countResult] = await Promise.all([
-      knex('product_reviews').where(whereClause).select('*').orderBy('created_at', 'desc').limit(limit).offset(offset),
+      knex('product_reviews')
+        .leftJoin('users', 'product_reviews.user_id', 'users.id')
+        .where(whereClause)
+        .select('product_reviews.*', 'users.name as user_name')
+        .orderBy('product_reviews.created_at', 'desc')
+        .limit(limit)
+        .offset(offset),
       knex('product_reviews').where(whereClause).count('* as count').first()
     ]);
     const total = parseInt(countResult?.count || 0, 10);
@@ -342,8 +348,20 @@ class ProductModel {
       .limit(limit)
       .offset(offset);
 
+    const reviewIds = reviews.map((r) => r.review_id);
+    const mediaItems = reviewIds.length > 0 ? await this.getReviewImagesByReviewIds(reviewIds) : [];
+    const mediaByReviewId = {};
+    for (const item of mediaItems) {
+      if (!mediaByReviewId[item.review_id]) mediaByReviewId[item.review_id] = [];
+      mediaByReviewId[item.review_id].push(item);
+    }
+    const reviewsWithMedia = reviews.map((r) => ({
+      ...r,
+      media: mediaByReviewId[r.review_id] || []
+    }));
+
     return {
-      reviews,
+      reviews: reviewsWithMedia,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -382,11 +400,12 @@ class ProductModel {
     return review;
   }
 
-  static async setReviewImages(reviewId, urls) {
-    if (!Array.isArray(urls) || urls.length === 0) return [];
-    const rows = urls.slice(0, 3).map((url, index) => ({
+  static async setReviewImages(reviewId, media) {
+    if (!Array.isArray(media) || media.length === 0) return [];
+    const rows = media.slice(0, 5).map((item, index) => ({
       review_id: reviewId,
-      url: typeof url === 'string' ? url : url.url || url,
+      url: typeof item === 'string' ? item : item.url || item,
+      type: (typeof item === 'object' && item.type) ? item.type : 'image',
       sort_order: index
     }));
     const inserted = await knex('product_review_images').insert(rows).returning('*');

@@ -159,6 +159,32 @@ class AuthService {
     await UserModel.setEmailVerified(user.id);
     return user;
   }
+
+  /**
+   * Resend verification email
+   */
+  static async resendEmailVerification(userId) {
+    const user = await UserModel.findById(userId);
+    if (!user) throw new Error('User not found');
+    if (user.email_verified) throw new Error('Email is already verified');
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_EXPIRY_HOURS * 60 * 60 * 1000);
+
+    await UserModel.update(userId, {
+      email_verification_token: verificationToken,
+      email_verification_expires_at: expiresAt
+    });
+
+    try {
+      await sendVerificationEmail(user.email, user.name, verificationToken);
+    } catch (err) {
+      logger.error('Resend verification email failed:', err);
+      throw new Error('Failed to send verification email. Please try again later.');
+    }
+
+    return { message: 'Verification email sent successfully' };
+  }
 }
 
 module.exports = AuthService;
