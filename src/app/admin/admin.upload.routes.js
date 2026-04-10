@@ -158,6 +158,26 @@ router.post('/story-video', async (req, res) => {
   }
 });
 
+// Banner images
+router.post('/banner-image', async (req, res) => {
+  try {
+    if (!req.files || !req.files.image) {
+      return sendError(res, 400, 'Image file is required');
+    }
+
+    const file = req.files.image;
+    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+      return sendError(res, 400, 'Only image uploads are allowed');
+    }
+
+    const url = await saveUploadedImage(file, 'banners');
+    return sendSuccess(res, 200, 'Banner image uploaded successfully', { url });
+  } catch (error) {
+    logger.error('Banner image upload error:', error);
+    return sendError(res, 500, 'Failed to upload banner image');
+  }
+});
+
 module.exports = router;
 
 

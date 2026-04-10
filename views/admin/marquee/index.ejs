@@ -1,0 +1,136 @@
+<%- 
+    include('../../partials/admin_layout', {
+      title: title,
+      apiBaseUrl: apiBaseUrl,
+      body: `
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+          <h1>Marquee Appearance</h1>
+        </div>
+        <div class="card-body">
+          <form id="marqueeSettingsForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="marqueeSpeed">Scroll Speed (seconds)</label>
+                <input type="number" id="marqueeSpeed" placeholder="e.g. 25" min="1" max="100" />
+                <small>Lower is faster. Default is 25.</small>
+              </div>
+              <div class="form-group">
+                <label for="marqueeBgColor">Background Color</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="color" id="marqueeBgColor" style="height: 40px; width: 60px; padding: 2px; border:1px solid #ddd; cursor:pointer;" />
+                    <span id="bgColorValue" style="font-family:monospace; font-size:12px;">#702540</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="marqueeTextColor">Text Color</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="color" id="marqueeTextColor" style="height: 40px; width: 60px; padding: 2px; border:1px solid #ddd; cursor:pointer;" />
+                    <span id="textColorValue" style="font-family:monospace; font-size:12px;">#ffffff</span>
+                </div>
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:15px;">
+               <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                 <input type="checkbox" id="marqueeActive" style="width:18px; hieght:18px;" /> 
+                 <span style="font-weight:500;">Enable Marquee on Website</span>
+               </label>
+            </div>
+            <div id="settingsMsg" style="margin-top: 15px; font-size:14px;"></div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Save Appearance Settings</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="top-actions">
+            <h1>Marquee Messages</h1>
+            <button class="btn btn-primary" id="newMessageBtn">+ Add Message</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="marqueeTableLoader" class="table-loader">
+            <div class="loader"></div>
+            <div class="loader-text">Loading messages...</div>
+          </div>
+          <div id="marqueeContainer" style="display:none;">
+            <table id="marqueeTable">
+              <thead>
+                <tr>
+                  <th>Message Text</th>
+                  <th style="width:100px;">Order</th>
+                  <th style="width:100px;">Status</th>
+                  <th style="width:150px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="marqueeTableBody"></tbody>
+            </table>
+          </div>
+          <div id="marqueeEmpty" class="empty-state" style="display:none;">
+            <span>No messages found. Add your first message to get started.</span>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Message Modal -->
+      <div id="messageModal" class="large-modal">
+        <div class="large-modal-content">
+          <div class="large-modal-header">
+            <h2 id="messageModalTitle">Add Marquee Message</h2>
+            <button type="button" class="btn btn-secondary" id="closeMessageModal" style="padding:6px 12px;">×</button>
+          </div>
+          <div class="large-modal-body">
+            <form id="messageForm">
+              <input type="hidden" id="messageId" />
+              
+              <div class="form-group required-field">
+                <label for="messageText">Message Text</label>
+                <input id="messageText" placeholder="e.g. Free Shipping On Orders Above ₹50,000" required />
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="messageOrder">Display Order</label>
+                  <input id="messageOrder" type="number" value="0" />
+                </div>
+                <div class="form-group">
+                  <label for="messageStatus">Status</label>
+                  <select id="messageStatus">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div id="messageFormError" class="error"></div>
+            </form>
+          </div>
+          <div class="large-modal-footer">
+            <button type="button" class="btn btn-secondary" id="cancelMessageBtn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="saveMessageBtn" form="messageForm">Save Message</button>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Delete Confirmation Modal -->
+      <div id="deleteMessageModal" class="delete-modal-overlay">
+        <div class="delete-modal">
+          <div class="delete-modal-header">
+            <h3>Delete Message</h3>
+          </div>
+          <div class="delete-modal-body">
+            <p>Are you sure you want to delete this message?</p>
+          </div>
+          <div class="delete-modal-actions">
+            <button type="button" class="btn btn-secondary" id="deleteMessageCancel">Cancel</button>
+            <button type="button" class="btn btn-danger" id="deleteMessageConfirm">Delete</button>
+          </div>
+        </div>
+      </div>
+      `,
+      scripts: `
+        <script src="/static/js/admin-marquee.js"></script>
+      `
+    })
+  %>

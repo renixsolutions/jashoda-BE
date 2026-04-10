@@ -1,0 +1,190 @@
+<%- 
+    include('../../partials/admin_layout', {
+      title: title,
+      apiBaseUrl: apiBaseUrl,
+      body: `
+      <div class="card">
+        <div class="card-header">
+          <div class="top-actions">
+            <h1>Hero Banners</h1>
+            <button class="btn btn-primary" id="newBannerBtn">+ New Hero Banner</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="bannersTableLoader" class="table-loader">
+            <div class="loader"></div>
+            <div class="loader-text">Loading banners...</div>
+          </div>
+          <div id="bannersContainer" style="display:none;">
+            <table id="bannersTable">
+              <thead>
+                <tr>
+                  <th style="width:120px;">Image</th>
+                  <th>Title</th>
+                  <th style="width:150px;">Section</th>
+                  <th>Redirection (Filters)</th>
+                  <th style="width:100px;">Status</th>
+                  <th style="width:100px;">Order</th>
+                  <th style="width:150px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="bannersTableBody"></tbody>
+            </table>
+          </div>
+          <div id="bannersEmpty" class="empty-state" style="display:none;">
+            <span>No banners found. Create your first banner to get started.</span>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Banner Modal -->
+      <div id="bannerModal" class="large-modal">
+        <div class="large-modal-content">
+          <div class="large-modal-header">
+            <h2 id="bannerModalTitle">New Hero Banner</h2>
+            <button type="button" class="btn btn-secondary" id="closeBannerModal" style="padding:6px 12px;">×</button>
+          </div>
+          <div class="large-modal-body">
+            <form id="bannerForm">
+              <input type="hidden" id="bannerId" />
+              <input type="hidden" id="bannerImageUrl" />
+              <input type="hidden" id="bannerSecondaryImageUrl" />
+              
+              <div class="form-section">
+                <div class="form-section-title">Visual Content</div>
+                <div class="form-row">
+                  <div class="form-group required-field">
+                    <label for="bannerTitle">Title</label>
+                    <input id="bannerTitle" placeholder="e.g. Season Of Style '25" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="bannerSubtitle">Subtitle</label>
+                    <input id="bannerSubtitle" placeholder="e.g. A tribute to elegance" />
+                  </div>
+                  <div class="form-group">
+                    <label for="bannerType">Display Section</label>
+                    <select id="bannerType">
+                      <option value="PROMO_CAROUSEL">Promotional Carousel (Lower)</option>
+                      <option value="MAIN_HERO">Main Hero Banner (Top)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="bannerBrandText">Brand Text</label>
+                    <input id="bannerBrandText" placeholder="e.g. Jashoda Jewels" />
+                  </div>
+                  <div class="form-group">
+                    <label for="bannerCtaText">CTA Button Text</label>
+                    <input id="bannerCtaText" placeholder="e.g. EXPLORE NOW" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="bannerDescription">Description</label>
+                  <textarea id="bannerDescription" placeholder="Enter banner description..."></textarea>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="bannerBgColor">Background Class/Color</label>
+                    <input id="bannerBgColor" placeholder="e.g. bg-[#F9F4F0]" />
+                  </div>
+                  <div class="form-group">
+                    <label for="bannerAccentColor">Accent Class/Color</label>
+                    <input id="bannerAccentColor" placeholder="e.g. text-[#8B5E3C]" />
+                  </div>
+                </div>
+              </div>
+  
+              <div class="form-section">
+                  <div class="form-section-title">Filters (Redirection)</div>
+                  <p style="font-size:12px; color:#6b7280; margin-bottom:12px;">Set these filters to redirect users to a specific product collection when they click the banner.</p>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="bannerGenderId">Gender</label>
+                      <select id="bannerGenderId">
+                        <option value="">None</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="bannerOccasionId">Occasion</label>
+                      <select id="bannerOccasionId">
+                        <option value="">None</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                      <div class="form-group">
+                        <label for="bannerCategoryId">Category (Main)</label>
+                        <select id="bannerCategoryId">
+                          <option value="">None</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label for="bannerSubcategoryId">Subcategory</label>
+                        <select id="bannerSubcategoryId">
+                          <option value="">None</option>
+                        </select>
+                      </div>
+                  </div>
+              </div>
+  
+              <div class="form-section">
+                <div class="form-section-title">Image & Order</div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Primary Image (Foreground)</label>
+                    <input type="file" id="bannerImageFile" accept="image/*" />
+                    <div id="imageUploadLoader" style="display:none; margin-top:10px;">Uploading...</div>
+                    <div id="bannerImagePreview" style="margin-top:10px;"></div>
+                  </div>
+                  <div class="form-group">
+                    <label>Secondary Image (Optional)</label>
+                    <input type="file" id="bannerSecondaryImageFile" accept="image/*" />
+                    <div id="secondaryImageUploadLoader" style="display:none; margin-top:10px;">Uploading...</div>
+                    <div id="bannerSecondaryImagePreview" style="margin-top:10px;"></div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="bannerOrderIndex">Order / Sequence</label>
+                  <input id="bannerOrderIndex" type="number" value="0" />
+                </div>
+                <div class="form-group" style="margin-top:12px;">
+                  <label for="bannerStatus">Status</label>
+                  <select id="bannerStatus">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div id="bannerFormError" class="error"></div>
+            </form>
+          </div>
+          <div class="large-modal-footer">
+            <button type="button" class="btn btn-secondary" id="cancelBannerBtn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="saveBannerBtn" form="bannerForm">Save</button>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Delete Confirmation Modal -->
+      <div id="deleteBannerModal" class="delete-modal-overlay">
+        <div class="delete-modal">
+          <div class="delete-modal-header">
+            <h3>Delete Banner</h3>
+          </div>
+          <div class="delete-modal-body">
+            <p>Are you sure you want to delete this hero banner?</p>
+          </div>
+          <div class="delete-modal-actions">
+            <button type="button" class="btn btn-secondary" id="deleteBannerCancel">Cancel</button>
+            <button type="button" class="btn btn-danger" id="deleteBannerConfirm">Delete</button>
+          </div>
+        </div>
+      </div>
+      `,
+      scripts: `
+        <script src="/static/js/admin-banners.js"></script>
+      `
+    })
+  %>

@@ -93,6 +93,22 @@ router.get('/stories', (req, res) => {
   });
 });
 
+// Hero Banners management page
+router.get('/banners', (req, res) => {
+  res.render('admin/banners/index', {
+    title: 'Hero Banners | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
+// Marquee management page
+router.get('/marquee', (req, res) => {
+  res.render('admin/marquee/index', {
+    title: 'Marquee | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
 module.exports = router;
 
 
