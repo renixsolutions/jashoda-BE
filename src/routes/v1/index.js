@@ -22,6 +22,10 @@ const bannerRoutes = require('../../app/banners/banner.routes');
 const adminBannerRoutes = require('../../app/banners/banner.admin.routes');
 const marqueeRoutes = require('../../app/marquee/marquee.routes');
 const adminMarqueeRoutes = require('../../app/marquee/marquee.admin.routes');
+const testimonialRoutes = require('../../app/testimonials/testimonial.routes');
+const adminTestimonialRoutes = require('../../app/testimonials/testimonial.admin.routes');
+const homeAdRoutes = require('../../app/home-ads/home-ad.routes');
+const adminHomeAdRoutes = require('../../app/home-ads/home-ad.admin.routes');
 const router = express.Router();
 
 // API version 1 routes
@@ -37,6 +41,8 @@ router.use('/promos', promoRoutes);
 router.use('/stories', storyRoutes);
 router.use('/banners', bannerRoutes);
 router.use('/marquee', marqueeRoutes);
+router.use('/testimonials', testimonialRoutes);
+router.use('/home-ads', homeAdRoutes);
 
 // Customer APIs (authenticated)
 router.use('/cart', cartRoutes);
@@ -54,5 +60,7 @@ router.use('/admin/promos', adminPromoRoutes);
 router.use('/admin/stories', adminStoryRoutes);
 router.use('/admin/banners', adminBannerRoutes);
 router.use('/admin/marquee', adminMarqueeRoutes);
+router.use('/admin/testimonials', adminTestimonialRoutes);
+router.use('/admin/home-ads', adminHomeAdRoutes);
 
 module.exports = router;

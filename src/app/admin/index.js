@@ -53,6 +53,14 @@ router.get('/reviews', (req, res) => {
   });
 });
 
+// Testimonials management page
+router.get('/testimonials', (req, res) => {
+  res.render('admin/testimonials/index', {
+    title: 'Testimonials | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
 // Categories management page
 router.get('/categories', (req, res) => {
   res.render('admin/categories/index', {
@@ -81,6 +89,14 @@ router.get('/occasions', (req, res) => {
 router.get('/promos', (req, res) => {
   res.render('admin/promos/index', {
     title: 'Promo Videos | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
+// Home Ad Cards management page
+router.get('/home-ads', (req, res) => {
+  res.render('admin/home-ads/index', {
+    title: 'Home Ad Cards | Admin',
     apiBaseUrl: '/api/v1'
   });
 });

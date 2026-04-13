@@ -138,7 +138,25 @@ router.post('/promo-video', async (req, res) => {
   }
 });
 
-// Story videos
+// Home ad videos
+router.post('/home-ad-video', async (req, res) => {
+  try {
+    if (!req.files || !req.files.video) {
+      return sendError(res, 400, 'Video file is required');
+    }
+
+    const file = req.files.video;
+    if (!file.mimetype || !file.mimetype.startsWith('video/')) {
+      return sendError(res, 400, 'Only video uploads are allowed');
+    }
+
+    const url = await saveUploadedImage(file, 'home-ads');
+    return sendSuccess(res, 200, 'Home ad video uploaded successfully', { url });
+  } catch (error) {
+    logger.error('Home ad video upload error:', error);
+    return sendError(res, 500, 'Failed to upload home ad video');
+  }
+});
 router.post('/story-video', async (req, res) => {
   try {
     if (!req.files || !req.files.video) {
@@ -175,6 +193,25 @@ router.post('/banner-image', async (req, res) => {
   } catch (error) {
     logger.error('Banner image upload error:', error);
     return sendError(res, 500, 'Failed to upload banner image');
+  }
+});
+
+router.post('/testimonial-image', async (req, res) => {
+  try {
+    if (!req.files || !req.files.image) {
+      return sendError(res, 400, 'Image file is required');
+    }
+
+    const file = req.files.image;
+    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+      return sendError(res, 400, 'Only image uploads are allowed');
+    }
+
+    const url = await saveUploadedImage(file, 'testimonials');
+    return sendSuccess(res, 200, 'Testimonial image uploaded successfully', { url });
+  } catch (error) {
+    logger.error('Testimonial image upload error:', error);
+    return sendError(res, 500, 'Failed to upload testimonial image');
   }
 });
 
