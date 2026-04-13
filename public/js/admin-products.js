@@ -278,7 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!res.ok) throw new Error(data.message || 'Failed to load subcategories');
     return data.data || data;
   }
-
   async function loadOccasions() {
     const token = requireAuth();
     const res = await fetch(`${API_BASE}/admin/occasions/all`, {
@@ -287,6 +286,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to load occasions');
     return data.data || data;
+  }
+
+  async function loadCollections() {
+    const token = requireAuth();
+    const res = await fetch(`${API_BASE}/admin/collections?isActive=active`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to load collections');
+    return data.data || data;
+  }
+
+  async function populateCollections(selectedCollectionIds = []) {
+    const container = document.getElementById('productCollectionsList');
+    if (!container) return;
+    try {
+      const collections = await loadCollections();
+      container.innerHTML = '';
+      (collections || []).forEach(coll => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        const isChecked = selectedCollectionIds.some(id => parseInt(id) === parseInt(coll.id));
+        div.innerHTML = `
+          <input type="checkbox" id="coll_${coll.id}" value="${coll.id}" ${isChecked ? 'checked' : ''} name="productCollections">
+          <label for="coll_${coll.id}">${coll.name}</label>
+        `;
+        container.appendChild(div);
+      });
+    } catch (err) {
+      console.error('Failed to load collections:', err);
+    }
   }
 
   async function populateOccasions(selectedOccasionIds = []) {
@@ -447,6 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
     await populateCategoryDropdown();
     const occasionIds = product && product.occasions ? product.occasions.map(o => o.id) : (product && product.occasion_id ? [product.occasion_id] : []);
     await populateOccasions(occasionIds);
+    const collectionIds = product && product.collections ? product.collections.map(c => c.id) : [];
+    await populateCollections(collectionIds);
     if (product && product.category) {
       const categorySelect = document.getElementById('productCategory');
       if (categorySelect) {
@@ -629,6 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const category = document.getElementById('productCategory').value.trim();
     const subcategory = document.getElementById('productSubcategory').value.trim();
     const selectedOccasions = Array.from(document.querySelectorAll('input[name="productOccasions"]:checked')).map(el => parseInt(el.value));
+    const selectedCollections = Array.from(document.querySelectorAll('input[name="productCollections"]:checked')).map(el => parseInt(el.value));
     const gender = document.getElementById('productGender').value || null;
     const brand = document.getElementById('productBrand').value.trim();
     const shortDescription = document.getElementById('productShortDescription').value.trim();
@@ -677,6 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const payload = {
       name, category, subcategory, price, description, status,
       occasion_ids: selectedOccasions,
+      collection_ids: selectedCollections,
       gender: gender || undefined,
       sku: sku || undefined,
       subcategory: subcategory || undefined,

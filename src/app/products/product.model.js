@@ -19,6 +19,7 @@ class ProductModel {
 
     if (product) {
       product.occasions = await this.getOccasions(product.id);
+      product.collections = await this.getCollections(product.id);
     }
     return product;
   }
@@ -32,6 +33,7 @@ class ProductModel {
 
     if (product) {
       product.occasions = await this.getOccasions(product.id);
+      product.collections = await this.getCollections(product.id);
     }
     return product;
   }
@@ -486,6 +488,28 @@ class ProductModel {
     }));
     
     return knex('product_occasions').insert(rows).returning('*');
+  }
+
+  static async getCollections(productId) {
+    return knex('product_collections')
+      .join('collections', 'product_collections.collection_id', 'collections.id')
+      .where('product_collections.product_id', productId)
+      .select('collections.*');
+  }
+
+  static async setCollections(productId, collectionIds) {
+    if (!Array.isArray(collectionIds)) return [];
+    
+    await knex('product_collections').where({ product_id: productId }).del();
+    
+    if (collectionIds.length === 0) return [];
+    
+    const rows = collectionIds.map(collId => ({
+      product_id: productId,
+      collection_id: parseInt(collId, 10)
+    }));
+    
+    return knex('product_collections').insert(rows).returning('*');
   }
 }
 

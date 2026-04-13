@@ -19,6 +19,7 @@ class ProductService {
 
     const images = productData.images;
     const occasionIds = productData.occasion_ids;
+    const collectionIds = productData.collection_ids;
     
     if (images) {
       if (!Array.isArray(images) || images.length < 1 || images.length > 5) {
@@ -34,6 +35,7 @@ class ProductService {
     };
     delete productToCreate.images;
     delete productToCreate.occasion_ids;
+    delete productToCreate.collection_ids;
 
     const product = await ProductModel.create(productToCreate);
 
@@ -44,6 +46,10 @@ class ProductService {
 
     if (Array.isArray(occasionIds)) {
       await ProductModel.setOccasions(product.id, occasionIds);
+    }
+
+    if (Array.isArray(collectionIds)) {
+      await ProductModel.setCollections(product.id, collectionIds);
     }
 
     const productImages = allImages.length ? await ProductModel.getImages(product.id) : [];
@@ -215,6 +221,7 @@ class ProductService {
 
     const images = productData.images;
     const occasionIds = productData.occasion_ids;
+    const collectionIds = productData.collection_ids;
     
     if (images) {
       if (!Array.isArray(images) || images.length < 1 || images.length > 5) {
@@ -227,6 +234,7 @@ class ProductService {
     const dataWithoutImages = { ...productData };
     delete dataWithoutImages.images;
     delete dataWithoutImages.occasion_ids;
+    delete dataWithoutImages.collection_ids;
 
     const updatedProduct = await ProductModel.update(id, dataWithoutImages);
 
@@ -236,6 +244,10 @@ class ProductService {
 
     if (Array.isArray(occasionIds)) {
       await ProductModel.setOccasions(id, occasionIds);
+    }
+
+    if (Array.isArray(collectionIds)) {
+      await ProductModel.setCollections(id, collectionIds);
     }
 
     const productImages = await ProductModel.getImages(id);

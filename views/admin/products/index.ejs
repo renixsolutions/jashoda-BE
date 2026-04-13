@@ -12,8 +12,13 @@
         border: 1px solid #ddd;
         border-radius: 4px;
         max-height: 150px;
+        min-height: 40px;
         overflow-y: auto;
         background: #fff;
+      }
+      body.dark .checkbox-grid {
+        background: #020617;
+        border-color: #1f2937;
       }
       .checkbox-item {
         display: flex;
@@ -121,6 +126,13 @@
                     <!-- Checkboxes will be dynamically loaded -->
                   </div>
                   <div class="help-text">Select one or more occasions</div>
+                </div>
+                <div class="form-group">
+                  <label>Collections</label>
+                  <div id="productCollectionsList" class="checkbox-grid">
+                    <!-- Checkboxes will be dynamically loaded -->
+                  </div>
+                  <div class="help-text">Select one or more collections</div>
                 </div>
               </div>
               <div class="form-row">

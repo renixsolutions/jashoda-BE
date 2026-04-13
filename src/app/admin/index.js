@@ -125,6 +125,14 @@ router.get('/marquee', (req, res) => {
   });
 });
 
+// Collections management page
+router.get('/collections', (req, res) => {
+  res.render('admin/collections/index', {
+    title: 'Collections | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
 module.exports = router;
 
 

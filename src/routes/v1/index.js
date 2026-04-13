@@ -26,6 +26,8 @@ const testimonialRoutes = require('../../app/testimonials/testimonial.routes');
 const adminTestimonialRoutes = require('../../app/testimonials/testimonial.admin.routes');
 const homeAdRoutes = require('../../app/home-ads/home-ad.routes');
 const adminHomeAdRoutes = require('../../app/home-ads/home-ad.admin.routes');
+const collectionRoutes = require('../../app/collections/collection.routes');
+const adminCollectionRoutes = require('../../app/collections/collection.admin.routes');
 const router = express.Router();
 
 // API version 1 routes
@@ -43,6 +45,7 @@ router.use('/banners', bannerRoutes);
 router.use('/marquee', marqueeRoutes);
 router.use('/testimonials', testimonialRoutes);
 router.use('/home-ads', homeAdRoutes);
+router.use('/collections', collectionRoutes);
 
 // Customer APIs (authenticated)
 router.use('/cart', cartRoutes);
@@ -62,5 +65,6 @@ router.use('/admin/banners', adminBannerRoutes);
 router.use('/admin/marquee', adminMarqueeRoutes);
 router.use('/admin/testimonials', adminTestimonialRoutes);
 router.use('/admin/home-ads', adminHomeAdRoutes);
+router.use('/admin/collections', adminCollectionRoutes);
 
 module.exports = router;

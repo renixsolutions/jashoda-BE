@@ -74,6 +74,25 @@ router.post('/occasion-image', async (req, res) => {
   }
 });
 
+router.post('/collection-image', async (req, res) => {
+  try {
+    if (!req.files || !req.files.image) {
+      return sendError(res, 400, 'Image file is required');
+    }
+
+    const file = req.files.image;
+    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+      return sendError(res, 400, 'Only image uploads are allowed');
+    }
+
+    const url = await saveUploadedImage(file, 'collections');
+    return sendSuccess(res, 200, 'Collection image uploaded successfully', { url });
+  } catch (error) {
+    logger.error('Collection image upload error:', error);
+    return sendError(res, 500, 'Failed to upload collection image');
+  }
+});
+
 // Review images (1-3 per review); authenticated users (e.g. customers) can upload when submitting a review
 router.post('/review-image', async (req, res) => {
   try {
