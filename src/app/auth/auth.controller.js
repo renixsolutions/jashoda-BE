@@ -80,6 +80,17 @@ class AuthController {
       return res.redirect(`${appConfig.frontendUrl}/?email_verified=0&error=${errorCode}`);
     }
   }
+
+  static async resendVerification(req, res) {
+    try {
+      const userId = req.user.id;
+      const result = await AuthService.resendEmailVerification(userId);
+      return sendSuccess(res, 200, result.message);
+    } catch (error) {
+      logger.error('Resend verification error:', error);
+      return sendError(res, 400, error.message || messages.ERROR);
+    }
+  }
 }
 
 module.exports = AuthController;

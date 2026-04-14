@@ -2,11 +2,13 @@ const OrderModel = require('./order.model');
 const CartModel = require('../cart/cart.model');
 const CartService = require('../cart/cart.service');
 const ProductModel = require('../products/product.model');
-const { decrementStock } = require('../products/product.stock.service');
+const { decrementStock, incrementStock } = require('../products/product.stock.service');
 const PaymentService = require('../payment/payment.service');
 const messages = require('../../constants/messages');
 const UserModel = require('../users/user.model');
 const UserAddressModel = require('../users/user.address.model');
+const { toFullUrl } = require('../../utils/helpers');
+const config = require('../../config/app');
 
 function generateOrderNumber() {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -142,6 +144,16 @@ class OrderService {
     if (!admin && order.user_id !== userId) throw new Error(messages.NOT_FOUND);
 
     const items = await OrderModel.getOrderItems(orderId);
+    const itemsWithImages = await Promise.all(items.map(async (item) => {
+      const product = await ProductModel.findById(item.product_id);
+      return {
+        ...item,
+        image_url: product?.image_url ? toFullUrl(product.image_url, config.appUrl) : null,
+        original_price: product?.price ? parseFloat(product.price) : null,
+        discount_price: product?.discount_price ? parseFloat(product.discount_price) : null
+      };
+    }));
+
     let user = null;
     if (order.user_id) {
       user = await UserModel.findById(order.user_id);
@@ -156,14 +168,31 @@ class OrderService {
       shipping: parseFloat(order.shipping),
       discount: parseFloat(order.discount),
       total: parseFloat(order.total),
-      items,
+      items: itemsWithImages,
       user
     };
   }
 
   static async getMyOrders(userId, options = {}) {
     const result = await OrderModel.findByUserId(userId, options);
-    return result;
+    const ordersWithItems = await Promise.all(result.orders.map(async (order) => {
+      const items = await OrderModel.getOrderItems(order.id);
+      const itemsWithImages = await Promise.all(items.map(async (item) => {
+        const product = await ProductModel.findById(item.product_id);
+        return {
+          ...item,
+          image_url: product?.image_url ? toFullUrl(product.image_url, config.appUrl) : null,
+          original_price: product?.price ? parseFloat(product.price) : null,
+          discount_price: product?.discount_price ? parseFloat(product.discount_price) : null
+        };
+      }));
+      return { 
+        ...order, 
+        total: parseFloat(order.total),
+        items: itemsWithImages 
+      };
+    }));
+    return { ...result, orders: ordersWithItems };
   }
 
   static async listOrders(options = {}) {
@@ -176,6 +205,21 @@ class OrderService {
     const valid = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
     if (!valid.includes(status)) throw new Error('Invalid order status');
 
+    // If order is being cancelled, restore stock
+    if (status === 'cancelled' && order.status !== 'cancelled') {
+        const items = await OrderModel.getOrderItems(orderId);
+        for (const item of items) {
+            await incrementStock(item.product_id, item.quantity);
+        }
+    } 
+    // If order was cancelled and is now being restored, decrement stock again
+    else if (order.status === 'cancelled' && status !== 'cancelled') {
+        const items = await OrderModel.getOrderItems(orderId);
+        for (const item of items) {
+            await decrementStock(item.product_id, item.quantity);
+        }
+    }
+
     const updated = await OrderModel.update(orderId, { status });
     return this.getOrderById(updated.id, updated.user_id, true);
   }
@@ -183,6 +227,15 @@ class OrderService {
   static async updatePaymentSuccess(orderId, razorpayPaymentId) {
     const order = await OrderModel.findById(orderId);
     if (!order) throw new Error(messages.NOT_FOUND);
+    
+    // Decrement stock if it hasn't been done yet
+    if (order.payment_status !== 'paid') {
+        const items = await OrderModel.getOrderItems(orderId);
+        for (const item of items) {
+            await decrementStock(item.product_id, item.quantity);
+        }
+    }
+
     await OrderModel.update(orderId, {
       payment_status: 'paid',
       razorpay_payment_id: razorpayPaymentId,

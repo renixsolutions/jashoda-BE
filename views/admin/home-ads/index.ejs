@@ -1,0 +1,150 @@
+<%- 
+  include('../../partials/admin_layout', {
+    title: title,
+    apiBaseUrl: apiBaseUrl,
+    body: `
+    <div class="card">
+      <div class="card-header">
+        <div class="top-actions">
+          <h1>Home Ad Cards</h1>
+          <button class="btn btn-primary" id="newAdBtn">+ New Ad Card</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="adsTableLoader" class="table-loader">
+          <div class="loader"></div>
+          <div class="loader-text">Loading ad cards...</div>
+        </div>
+        <div id="adsContainer" style="display:none;">
+          <table id="adsTable">
+            <thead>
+              <tr>
+                <th style="width:200px;">Video</th>
+                <th>Title / Subtitle</th>
+                <th>Filters / Link</th>
+                <th style="width:80px;">Status</th>
+                <th style="width:80px;">Order</th>
+                <th style="width:150px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ad Modal -->
+    <div id="adModal" class="large-modal">
+      <div class="large-modal-content">
+        <div class="large-modal-header">
+          <h2 id="adModalTitle">New Home Ad Card</h2>
+          <button type="button" class="btn btn-secondary" id="closeAdModal" style="padding:6px 12px;">×</button>
+        </div>
+        <div class="large-modal-body">
+          <form id="adForm">
+            <input type="hidden" id="adId" />
+            <input type="hidden" id="adVideoUrl" />
+            
+            <div class="form-section">
+              <div class="form-section-title">Content Info</div>
+              <div class="form-row">
+                <div class="form-group required-field">
+                  <label for="adTitle">Title</label>
+                  <input id="adTitle" placeholder="e.g. Signature Collection" required />
+                </div>
+                <div class="form-group">
+                  <label for="adSubtitle">Subtitle</label>
+                  <input id="adSubtitle" placeholder="e.g. Brilliance in Motion" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="adLinkText">Button Text</label>
+                  <input id="adLinkText" placeholder="e.g. Explore Collection" value="Explore Collection" />
+                </div>
+                <div class="form-group">
+                  <label for="adOrderIndex">Order / Sequence</label>
+                  <input id="adOrderIndex" type="number" value="0" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="adStatus">Status</label>
+                <select id="adStatus">
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">Routing & Filters</div>
+              <p class="help-text" style="margin-bottom:12px;">The user will be routed to the Shop with these filters applied.</p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="adCategory">Category</label>
+                  <select id="adCategory">
+                    <option value="">No Category Filter</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="adGender">Gender</label>
+                  <select id="adGender">
+                    <option value="">No Gender Filter</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="adOccasion">Occasion</label>
+                  <select id="adOccasion">
+                    <option value="">No Occasion Filter</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="adLinkUrl">Custom URL Override</label>
+                  <input id="adLinkUrl" placeholder="e.g. /shop/offers (Overrides filters)" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">Upload Video</div>
+              <div class="form-group">
+                <label>File (MP4, WebM)</label>
+                <input type="file" id="adVideoFile" accept="video/mp4,video/webm" style="padding:8px; border:2px dashed #ddd; border-radius:4px; background:#f8f9fa; cursor:pointer;" />
+                <div id="videoUploadLoader" style="display:none; margin-top:10px;">Uploading...</div>
+              </div>
+              <div id="adVideoPreview" style="margin-top:16px;"></div>
+            </div>
+            
+            <div id="adFormError" class="error"></div>
+          </form>
+        </div>
+        <div class="large-modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelAdBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveAdBtn" form="adForm">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteAdModal" class="delete-modal-overlay">
+      <div class="delete-modal">
+        <div class="delete-modal-header">
+          <h3>Delete Ad Card</h3>
+        </div>
+        <div class="delete-modal-body">
+          <p>Are you sure you want to delete this home ad card?</p>
+        </div>
+        <div class="delete-modal-actions">
+          <button type="button" class="btn btn-secondary" id="deleteAdCancel">Cancel</button>
+          <button type="button" class="btn btn-danger" id="deleteAdConfirm">Delete</button>
+        </div>
+      </div>
+    </div>
+    `,
+    scripts: `
+      <script src="/static/js/admin-home-ads.js"></script>
+    `
+  })
+%>

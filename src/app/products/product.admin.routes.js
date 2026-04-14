@@ -24,7 +24,9 @@ const createOrUpdateValidation = [
   body('gender').optional({ nullable: true }).isString().isLength({ max: 50 }),
   body('sku').optional({ nullable: true }).isString().isLength({ max: 100 }),
   body('subcategory').notEmpty().withMessage('Subcategory is required').isString().isLength({ max: 100 }),
-  body('occasion_id').notEmpty().withMessage('Occasion is required').bail().toInt().isInt({ min: 1 }).withMessage('Occasion must be a valid ID'),
+  body('occasion_ids').optional({ nullable: true }).isArray().withMessage('Occasion IDs must be an array'),
+  body('occasion_ids.*').optional().toInt().isInt({ min: 1 }).withMessage('Each occasion ID must be valid'),
+  body('occasion_id').optional({ nullable: true }).toInt().isInt({ min: 1 }).withMessage('Occasion must be a valid ID'),
   body('brand').optional({ nullable: true }).isString().isLength({ max: 100 }),
   body('short_description').optional({ nullable: true }).isString(),
   body('discount_price').optional({ nullable: true }).isFloat({ min: 0 }),
@@ -64,6 +66,9 @@ const createOrUpdateValidation = [
 router.use(authenticate);
 
 router.get('/', ProductController.list);
+router.get('/reviews', ProductController.listReviews);
+router.put('/reviews/:id', ProductController.updateReview);
+router.delete('/reviews/:id', ProductController.removeReview);
 router.get('/:id', ProductController.getById);
 router.post('/', createOrUpdateValidation, ProductController.create);
 router.put('/:id', createOrUpdateValidation, ProductController.update);

@@ -18,6 +18,9 @@ class ProductService {
     }
 
     const images = productData.images;
+    const occasionIds = productData.occasion_ids;
+    const collectionIds = productData.collection_ids;
+    
     if (images) {
       if (!Array.isArray(images) || images.length < 1 || images.length > 5) {
         throw new Error('Products must have between 1 and 5 images');
@@ -31,6 +34,8 @@ class ProductService {
       image_url: primaryImage || null
     };
     delete productToCreate.images;
+    delete productToCreate.occasion_ids;
+    delete productToCreate.collection_ids;
 
     const product = await ProductModel.create(productToCreate);
 
@@ -39,11 +44,20 @@ class ProductService {
       await ProductModel.setImages(product.id, allImages);
     }
 
+    if (Array.isArray(occasionIds)) {
+      await ProductModel.setOccasions(product.id, occasionIds);
+    }
+
+    if (Array.isArray(collectionIds)) {
+      await ProductModel.setCollections(product.id, collectionIds);
+    }
+
     const productImages = allImages.length ? await ProductModel.getImages(product.id) : [];
 
     return {
       ...product,
       image_url: product.image_url ? toFullUrl(product.image_url, config.appUrl) : product.image_url,
+      video_url: product.video_url ? toFullUrl(product.video_url, config.appUrl) : product.video_url,
       images: withFullImageUrls(productImages)
     };
   }
@@ -60,6 +74,7 @@ class ProductService {
     return {
       ...product,
       image_url: product.image_url ? toFullUrl(product.image_url, config.appUrl) : product.image_url,
+      video_url: product.video_url ? toFullUrl(product.video_url, config.appUrl) : product.video_url,
       images: withFullImageUrls(images),
       average_rating: ratingAgg.average_rating,
       review_count: ratingAgg.review_count
@@ -78,10 +93,19 @@ class ProductService {
     return {
       ...product,
       image_url: product.image_url ? toFullUrl(product.image_url, config.appUrl) : product.image_url,
+      video_url: product.video_url ? toFullUrl(product.video_url, config.appUrl) : product.video_url,
       images: withFullImageUrls(images),
       average_rating: ratingAgg.average_rating,
       review_count: ratingAgg.review_count
     };
+  }
+
+  static async hasUserPurchased(userId, productId) {
+    return ProductModel.hasUserPurchasedProduct(userId, productId);
+  }
+
+  static async hasUserReviewed(userId, productId) {
+    return ProductModel.hasUserReviewedProduct(userId, productId);
   }
 
   static async getProductReviews(productId, options = {}) {
@@ -91,7 +115,10 @@ class ProductService {
     const baseUrl = config.appUrl;
     result.reviews = result.reviews.map((r) => ({
       ...r,
-      images: (r.images || []).map((img) => img.url ? toFullUrl(img.url, baseUrl) : img.url)
+      media: (r.images || []).map((m) => ({
+        url: m.url ? toFullUrl(m.url, baseUrl) : m.url,
+        type: m.type || 'image'
+      }))
     }));
     return result;
   }
@@ -115,9 +142,9 @@ class ProductService {
       throw new Error('Rating must be between 1 and 5');
     }
 
-    const images = Array.isArray(data.images) ? data.images : [];
-    if (images.length > 3) {
-      throw new Error('You can upload at most 3 images with your review');
+    const media = Array.isArray(data.media) ? data.media : [];
+    if (media.length > 5) {
+      throw new Error('You can upload at most 5 photos or videos with your review');
     }
 
     const review = await ProductModel.createReview({
@@ -129,18 +156,41 @@ class ProductService {
       is_verified_purchase: true
     });
 
-    if (images.length > 0) {
-      const urls = images.map((i) => (typeof i === 'string' ? i : i.url || i));
-      await ProductModel.setReviewImages(review.review_id, urls);
+    if (media.length > 0) {
+      await ProductModel.setReviewImages(review.review_id, media);
     }
 
-    const reviewImages = await ProductModel.getReviewImagesByReviewIds([review.review_id]);
+    const reviewMedia = await ProductModel.getReviewImagesByReviewIds([review.review_id]);
     const baseUrl = config.appUrl;
-    const reviewWithImages = {
+    const reviewWithMedia = {
       ...review,
-      images: reviewImages.map((img) => img.url ? toFullUrl(img.url, baseUrl) : img.url)
+      media: reviewMedia.map((m) => ({
+        url: m.url ? toFullUrl(m.url, baseUrl) : m.url,
+        type: m.type || 'image'
+      }))
     };
-    return reviewWithImages;
+    return reviewWithMedia;
+  }
+
+  static async getAllReviews(options = {}) {
+    const result = await ProductModel.getAllReviews(options);
+    const baseUrl = config.appUrl;
+    result.reviews = result.reviews.map((r) => ({
+      ...r,
+      media: (r.media || []).map((m) => ({
+        ...m,
+        url: m.url ? toFullUrl(m.url, baseUrl) : m.url
+      }))
+    }));
+    return result;
+  }
+
+  static async updateReview(reviewId, data) {
+    return ProductModel.updateReview(reviewId, data);
+  }
+
+  static async deleteReview(reviewId) {
+    return ProductModel.deleteReview(reviewId);
   }
 
   static async getAll(options = {}) {
@@ -170,6 +220,9 @@ class ProductService {
     if (!product) throw new Error(messages.NOT_FOUND);
 
     const images = productData.images;
+    const occasionIds = productData.occasion_ids;
+    const collectionIds = productData.collection_ids;
+    
     if (images) {
       if (!Array.isArray(images) || images.length < 1 || images.length > 5) {
         throw new Error('Products must have between 1 and 5 images');
@@ -180,6 +233,8 @@ class ProductService {
     // Images are stored in the separate product_images table.
     const dataWithoutImages = { ...productData };
     delete dataWithoutImages.images;
+    delete dataWithoutImages.occasion_ids;
+    delete dataWithoutImages.collection_ids;
 
     const updatedProduct = await ProductModel.update(id, dataWithoutImages);
 
@@ -187,11 +242,20 @@ class ProductService {
       await ProductModel.replaceImages(id, images);
     }
 
+    if (Array.isArray(occasionIds)) {
+      await ProductModel.setOccasions(id, occasionIds);
+    }
+
+    if (Array.isArray(collectionIds)) {
+      await ProductModel.setCollections(id, collectionIds);
+    }
+
     const productImages = await ProductModel.getImages(id);
 
     return {
       ...updatedProduct,
       image_url: updatedProduct.image_url ? toFullUrl(updatedProduct.image_url, config.appUrl) : updatedProduct.image_url,
+      video_url: updatedProduct.video_url ? toFullUrl(updatedProduct.video_url, config.appUrl) : updatedProduct.video_url,
       images: withFullImageUrls(productImages)
     };
   }

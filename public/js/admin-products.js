@@ -29,6 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return data;
   }
 
+  function generateDefaultSKU() {
+    const prefix = 'JSH';
+    const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const randomNums = Math.floor(100 + Math.random() * 900);
+    return `${prefix}-${randomChars}-${randomNums}`;
+  }
+
   function renderProducts(result) {
     const tbody = document.querySelector('#productsTable tbody');
     const table = document.getElementById('productsTable');
@@ -271,7 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!res.ok) throw new Error(data.message || 'Failed to load subcategories');
     return data.data || data;
   }
-
   async function loadOccasions() {
     const token = requireAuth();
     const res = await fetch(`${API_BASE}/admin/occasions/all`, {
@@ -282,23 +288,53 @@ document.addEventListener('DOMContentLoaded', () => {
     return data.data || data;
   }
 
-  async function populateOccasionDropdown(selectedOccasionId = null) {
-    const select = document.getElementById('productOccasion');
-    if (!select) return;
+  async function loadCollections() {
+    const token = requireAuth();
+    const res = await fetch(`${API_BASE}/admin/collections?isActive=active`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to load collections');
+    return data.data || data;
+  }
+
+  async function populateCollections(selectedCollectionIds = []) {
+    const container = document.getElementById('productCollectionsList');
+    if (!container) return;
+    try {
+      const collections = await loadCollections();
+      container.innerHTML = '';
+      (collections || []).forEach(coll => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        const isChecked = selectedCollectionIds.some(id => parseInt(id) === parseInt(coll.id));
+        div.innerHTML = `
+          <input type="checkbox" id="coll_${coll.id}" value="${coll.id}" ${isChecked ? 'checked' : ''} name="productCollections">
+          <label for="coll_${coll.id}">${coll.name}</label>
+        `;
+        container.appendChild(div);
+      });
+    } catch (err) {
+      console.error('Failed to load collections:', err);
+    }
+  }
+
+  async function populateOccasions(selectedOccasionIds = []) {
+    const container = document.getElementById('productOccasionsList');
+    if (!container) return;
     try {
       const occasions = await loadOccasions();
-      const previous = select.value;
-      select.innerHTML = '<option value="">Select Occasion</option>';
+      container.innerHTML = '';
       (occasions || []).forEach(occ => {
-        const opt = document.createElement('option');
-        opt.value = occ.id;
-        opt.textContent = occ.name;
-        if (selectedOccasionId != null && selectedOccasionId !== '' && parseInt(occ.id) === parseInt(selectedOccasionId)) {
-          opt.selected = true;
-        }
-        select.appendChild(opt);
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        const isChecked = selectedOccasionIds.some(id => parseInt(id) === parseInt(occ.id));
+        div.innerHTML = `
+          <input type="checkbox" id="occ_${occ.id}" value="${occ.id}" ${isChecked ? 'checked' : ''} name="productOccasions">
+          <label for="occ_${occ.id}">${occ.name}</label>
+        `;
+        container.appendChild(div);
       });
-      if (!selectedOccasionId && previous) select.value = previous;
     } catch (err) {
       console.error('Failed to load occasions:', err);
     }
@@ -435,11 +471,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Basic Info
     document.getElementById('productId').value = product ? product.id : '';
     document.getElementById('productName').value = product ? product.name : '';
-    document.getElementById('productSku').value = product ? (product.sku || '') : '';
+    document.getElementById('productSku').value = product ? (product.sku || '') : generateDefaultSKU();
     
     // Load categories, occasions and genders first, then set selected values
     await populateCategoryDropdown();
-    await populateOccasionDropdown(product ? (product.occasion_id ?? '') : null);
+    const occasionIds = product && product.occasions ? product.occasions.map(o => o.id) : (product && product.occasion_id ? [product.occasion_id] : []);
+    await populateOccasions(occasionIds);
+    const collectionIds = product && product.collections ? product.collections.map(c => c.id) : [];
+    await populateCollections(collectionIds);
     if (product && product.category) {
       const categorySelect = document.getElementById('productCategory');
       if (categorySelect) {
@@ -480,7 +519,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     await populateGenderDropdown(product ? (product.gender || '') : null);
-    document.getElementById('productOccasion').value = product && product.occasion_id ? String(product.occasion_id) : '';
     document.getElementById('productGender').value = product ? (product.gender || '') : '';
     document.getElementById('productBrand').value = product ? (product.brand || '') : '';
     document.getElementById('productShortDescription').value = product ? (product.short_description || '') : '';
@@ -528,6 +566,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set images array from product data
     productImages = product && product.images ? product.images.map(i => i.url || i) : [];
     updateImagesPreview();
+
+    // Set video
+    const videoUrl = product ? (product.video_url || '') : '';
+    document.getElementById('productVideoUrl').value = videoUrl;
+    const videoPreview = document.getElementById('productVideoPreview');
+    const videoPlayer = document.getElementById('productVideoPlayer');
+    const videoStatus = document.getElementById('productVideoUploadStatus');
+    if (videoUrl) {
+      videoPlayer.src = videoUrl;
+      videoPreview.style.display = 'block';
+    } else {
+      videoPreview.style.display = 'none';
+      videoPlayer.src = '';
+    }
+    videoStatus.textContent = '';
+    document.getElementById('productVideoFile').value = '';
     
     clearProductFormValidation();
     document.getElementById('productFormError').textContent = '';
@@ -554,8 +608,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!category) errors.push({ id: 'productCategory', message: 'Category is required' });
     const subcategory = document.getElementById('productSubcategory')?.value?.trim();
     if (!subcategory) errors.push({ id: 'productSubcategory', message: 'Subcategory is required' });
-    const occasionVal = document.getElementById('productOccasion')?.value?.trim();
-    if (!occasionVal) errors.push({ id: 'productOccasion', message: 'Occasion is required' });
+    
+    const selectedOccasions = Array.from(document.querySelectorAll('input[name="productOccasions"]:checked')).map(el => el.value);
+    if (selectedOccasions.length === 0) errors.push({ id: 'productOccasionsList', message: 'At least one occasion is required' });
+    
     if (!status) errors.push({ id: 'productStatus', message: 'Status is required' });
     const price = priceVal !== '' && priceVal !== undefined ? parseFloat(priceVal) : NaN;
     if (isNaN(price) || price < 0) errors.push({ id: 'productPrice', message: 'Base price is required and must be 0 or greater' });
@@ -604,7 +660,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const sku = document.getElementById('productSku').value.trim();
     const category = document.getElementById('productCategory').value.trim();
     const subcategory = document.getElementById('productSubcategory').value.trim();
-    const occasionId = document.getElementById('productOccasion').value.trim();
+    const selectedOccasions = Array.from(document.querySelectorAll('input[name="productOccasions"]:checked')).map(el => parseInt(el.value));
+    const selectedCollections = Array.from(document.querySelectorAll('input[name="productCollections"]:checked')).map(el => parseInt(el.value));
     const gender = document.getElementById('productGender').value || null;
     const brand = document.getElementById('productBrand').value.trim();
     const shortDescription = document.getElementById('productShortDescription').value.trim();
@@ -652,7 +709,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Build payload; use undefined for empty optionals so we don't send null (backend rejects null)
     const payload = {
       name, category, subcategory, price, description, status,
-      occasion_id: occasionId ? parseInt(occasionId, 10) : undefined,
+      occasion_ids: selectedOccasions,
+      collection_ids: selectedCollections,
       gender: gender || undefined,
       sku: sku || undefined,
       subcategory: subcategory || undefined,
@@ -691,6 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (payload[key] === undefined || payload[key] === null) delete payload[key];
     });
     if (productImages.length) payload.images = productImages;
+    if (document.getElementById('productVideoUrl').value) payload.video_url = document.getElementById('productVideoUrl').value;
 
     try {
       const url = id ? `${API_BASE}/admin/products/${id}` : `${API_BASE}/admin/products`;
@@ -778,11 +837,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Init bindings
-  requireAuth();
   buildCategoryMap();
   loadProducts();
   populateCategoryDropdown();
-  populateOccasionDropdown();
+  populateOccasions();
   populateGenderDropdown();
 
   updateImagesPreview();
@@ -800,6 +858,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const newBtn = document.getElementById('newProductBtn');
   if (newBtn) newBtn.addEventListener('click', () => openProductModal(null));
+
+  const skuGenBtn = document.getElementById('generateSkuBtn');
+  if (skuGenBtn) {
+    skuGenBtn.addEventListener('click', () => {
+      const skuInput = document.getElementById('productSku');
+      if (skuInput) skuInput.value = generateDefaultSKU();
+    });
+  }
 
   const cancelBtn = document.getElementById('cancelProductBtn');
   if (cancelBtn) cancelBtn.addEventListener('click', closeProductModal);
@@ -1054,6 +1120,62 @@ document.addEventListener('DOMContentLoaded', () => {
       isDragging = false;
     });
   }
+
+  // Video Upload
+  document.getElementById('productVideoFile')?.addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const status = document.getElementById('productVideoUploadStatus');
+    const urlInput = document.getElementById('productVideoUrl');
+    const preview = document.getElementById('productVideoPreview');
+    const player = document.getElementById('productVideoPlayer');
+
+    if (!file.type.startsWith('video/')) {
+      if (window.showToast) window.showToast('error', 'Please select a valid video file');
+      return;
+    }
+
+    status.textContent = 'Uploading video...';
+    status.style.color = '#832729';
+
+    try {
+      const formData = new FormData();
+      formData.append('video', file);
+
+      const token = requireAuth();
+      const res = await fetch(`${UPLOAD_BASE}/promo-video`, { 
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Upload failed');
+
+      const url = data.data && data.data.url ? data.data.url : data.url;
+      urlInput.value = url;
+      player.src = url;
+      preview.style.display = 'block';
+      status.textContent = 'Video uploaded successfully';
+      status.style.color = '#16a34a';
+      if (window.showToast) window.showToast('success', 'Video uploaded');
+    } catch (err) {
+      status.textContent = 'Upload failed: ' + err.message;
+      status.style.color = '#c62828';
+      if (window.showToast) window.showToast('error', err.message);
+    }
+  });
+
+  document.getElementById('removeProductVideo')?.addEventListener('click', () => {
+    document.getElementById('productVideoUrl').value = '';
+    document.getElementById('productVideoFile').value = '';
+    document.getElementById('productVideoPreview').style.display = 'none';
+    document.getElementById('productVideoPlayer').src = '';
+    document.getElementById('productVideoUploadStatus').textContent = '';
+  });
 });
 
 

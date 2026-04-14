@@ -17,6 +17,7 @@ const createReviewValidation = [
 
 router.get('/', optionalAuth, ProductController.list);
 router.get('/:id/reviews', ProductController.getReviews);
+router.get('/:id/review-eligibility', authenticate, ProductController.checkReviewEligibility);
 router.post('/:id/reviews', authenticate, createReviewValidation, ProductController.createReview);
 router.get('/:id', optionalAuth, ProductController.getById);
 

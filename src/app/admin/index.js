@@ -45,6 +45,22 @@ router.get('/users', (req, res) => {
   });
 });
 
+// Reviews management page
+router.get('/reviews', (req, res) => {
+  res.render('admin/reviews/index', {
+    title: 'Reviews | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
+// Testimonials management page
+router.get('/testimonials', (req, res) => {
+  res.render('admin/testimonials/index', {
+    title: 'Testimonials | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
 // Categories management page
 router.get('/categories', (req, res) => {
   res.render('admin/categories/index', {
@@ -77,10 +93,42 @@ router.get('/promos', (req, res) => {
   });
 });
 
+// Home Ad Cards management page
+router.get('/home-ads', (req, res) => {
+  res.render('admin/home-ads/index', {
+    title: 'Home Ad Cards | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
 // Stories Videos management page
 router.get('/stories', (req, res) => {
   res.render('admin/stories/index', {
     title: 'Style Stories | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
+// Hero Banners management page
+router.get('/banners', (req, res) => {
+  res.render('admin/banners/index', {
+    title: 'Hero Banners | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
+// Marquee management page
+router.get('/marquee', (req, res) => {
+  res.render('admin/marquee/index', {
+    title: 'Marquee | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
+// Collections management page
+router.get('/collections', (req, res) => {
+  res.render('admin/collections/index', {
+    title: 'Collections | Admin',
     apiBaseUrl: '/api/v1'
   });
 });
