@@ -133,6 +133,14 @@ router.get('/collections', (req, res) => {
   });
 });
 
+// Home Videos management page
+router.get('/home-videos', (req, res) => {
+  res.render('admin/home-videos/index', {
+    title: 'Home Video | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
 module.exports = router;
 
 

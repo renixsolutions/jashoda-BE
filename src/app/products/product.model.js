@@ -46,6 +46,7 @@ class ProductModel {
       subcategory,
       occasion,
       gender,
+      collection,
       status = 'active',
       search,
       sortBy = 'created_at',
@@ -77,61 +78,81 @@ class ProductModel {
         await knex.raw('select 1 from genders limit 1').then(async () => {
           const matchingGenders = await knex('genders').where('name', 'ilike', `%${search}%`).select('id');
           genIds = matchingGenders.map(g => g.id.toString());
-        }).catch(() => { }); // Catch if genders table doesn't exist
+        }).catch(() => { }); 
       } catch (e) {
         console.error("Search pre-fetch error:", e);
       }
     }
 
-    let query = knex('products')
-      .leftJoin('categories', knex.raw('products.category::text'), knex.raw('categories.id::text'))
-      .leftJoin(
-        knex.raw(
-          "(SELECT product_id, ROUND(AVG(rating)::numeric, 2) AS average_rating, COUNT(*)::int AS review_count FROM product_reviews WHERE status = 'approved' GROUP BY product_id) pr"
-        ),
-        'products.id',
-        'pr.product_id'
-      )
-      .select('products.*', 'categories.name as category_name', 'pr.average_rating', 'pr.review_count');
+    let query = knex('products');
 
-    // Status filter (only active products for website)
+    // Filters
     if (status) query = query.where('products.status', status);
 
-    // Category filter - can be name or ID
     if (category) {
       query = query.where('products.category', category);
     }
     if (subcategory) {
       query = query.where('products.subcategory', subcategory);
     }
-    if (occasion != null && occasion !== '') {
+
+    // Occasion filter (can be slug or ID)
+    if (occasion) {
       const occasionIds = Array.isArray(occasion) ? occasion : [occasion];
-      const validIds = occasionIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
-      if (validIds.length > 0) {
-        query = query.whereIn('products.id', function() {
-          this.select('product_id').from('product_occasions').whereIn('occasion_id', validIds);
+      const numericIds = occasionIds.filter(id => !isNaN(parseInt(id, 10))).map(id => parseInt(id, 10));
+      const slugs = occasionIds.filter(id => isNaN(parseInt(id, 10)));
+      
+      query = query.whereIn('products.id', function() {
+        this.select('product_id').from('product_occasions')
+          .join('occasions', 'product_occasions.occasion_id', 'occasions.id')
+          .where(function() {
+            if (numericIds.length > 0) this.whereIn('occasions.id', numericIds);
+            if (slugs.length > 0) this.orWhereIn('occasions.slug', slugs);
+          });
+      });
+    }
+
+    // Gender filter (can be slug or ID)
+    if (gender) {
+      if (!isNaN(parseInt(gender, 10))) {
+        const genderId = parseInt(gender, 10);
+        query = query.where(function() {
+          this.where('products.gender', genderId.toString())
+
+          // Also try to find by name just in case
+          this.orWhereIn('products.gender', function() {
+            this.select('name').from('genders').where('id', genderId);
+          });
+        });
+      } else {
+        query = query.where(function() {
+          this.where('products.gender', 'ilike', gender)
+            .orWhereIn('products.gender', function() {
+              this.select('name').from('genders').where('slug', gender);
+            })
+            .orWhereIn('products.gender', function() {
+              this.select(knex.raw('id::text')).from('genders').where('slug', gender);
+            });
         });
       }
     }
-    if (gender) {
-      if (isNaN(parseInt(gender, 10))) {
-        query = query.where('products.gender', gender);
-      } else {
-        // If it's an ID, also try to match the gender name just in case the DB stores names
-        try {
-          const genderDoc = await knex('genders').where('id', gender).first();
-          if (genderDoc) {
-            query = query.where((builder) => {
-              builder.where('products.gender', gender).orWhere('products.gender', genderDoc.name);
-            });
-          } else {
-            query = query.where('products.gender', gender);
-          }
-        } catch (e) {
-          query = query.where('products.gender', gender);
-        }
-      }
+
+    // Collection filter (can be slug or ID)
+    if (collection) {
+      const collectionIds = Array.isArray(collection) ? collection : [collection];
+      const numericIds = collectionIds.filter(id => !isNaN(parseInt(id, 10))).map(id => parseInt(id, 10));
+      const slugs = collectionIds.filter(id => isNaN(parseInt(id, 10)));
+
+      query = query.whereIn('products.id', function() {
+        this.select('product_id').from('product_collections')
+          .join('collections', 'product_collections.collection_id', 'collections.id')
+          .where(function() {
+            if (numericIds.length > 0) this.whereIn('collections.id', numericIds);
+            if (slugs.length > 0) this.orWhereIn('collections.slug', slugs);
+          });
+      });
     }
+
     if (minPrice) {
       query = query.where('products.price', '>=', parseFloat(minPrice));
     }
@@ -147,6 +168,7 @@ class ProductModel {
     if (inStock === true || inStock === 'true') {
       query = query.where('products.stock_status', 'in_stock').where('products.stock_quantity', '>', 0);
     }
+
     if (search) {
       query = query.where((builder) => {
         builder
@@ -169,81 +191,30 @@ class ProductModel {
       });
     }
 
-    const countQuery = knex('products');
-    if (status) countQuery.where('status', status);
-    if (category) countQuery.where('category', category);
-    if (subcategory) countQuery.where('subcategory', subcategory);
-    if (occasion != null && occasion !== '') {
-      const occasionIds = Array.isArray(occasion) ? occasion : [occasion];
-      const validIds = occasionIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
-      if (validIds.length > 0) {
-        countQuery.whereIn('id', function() {
-          this.select('product_id').from('product_occasions').whereIn('occasion_id', validIds);
-        });
-      }
-    }
-    if (gender) {
-      if (isNaN(parseInt(gender, 10))) {
-        countQuery.where('gender', gender);
-      } else {
-        const genderDoc = await knex('genders').where('id', gender).first();
-        if (genderDoc) {
-          countQuery.where((builder) => {
-            builder.where('gender', gender).orWhere('gender', genderDoc.name);
-          });
-        } else {
-          countQuery.where('gender', gender);
-        }
-      }
-    }
-    if (minPrice) countQuery.where('price', '>=', parseFloat(minPrice));
-    if (maxPrice) countQuery.where('price', '<=', parseFloat(maxPrice));
-    if (metalType) countQuery.where('metal_type', metalType);
-    if (stoneType) countQuery.where('stone_type', stoneType);
-    if (inStock === true || inStock === 'true') {
-      countQuery.where('stock_status', 'in_stock').where('stock_quantity', '>', 0);
-    }
-    if (search) {
-      countQuery.where((builder) => {
-        builder
-          .where('name', 'ilike', `%${search}%`)
-          .orWhere('description', 'ilike', `%${search}%`)
-          .orWhere('sku', 'ilike', `%${search}%`)
-          .orWhere('short_description', 'ilike', `%${search}%`);
+    // Get total count
+    const countResult = await query.clone().count('* as total').first();
+    const total = parseInt(countResult.total, 10);
 
-        if (catIds.length > 0) {
-          builder.orWhereIn('category', catIds).orWhereIn('subcategory', catIds);
-        }
-        if (occIds.length > 0) {
-          builder.orWhereIn('id', function() {
-            this.select('product_id').from('product_occasions').whereIn('occasion_id', occIds);
-          });
-        }
-        if (genIds.length > 0) {
-          builder.orWhereIn('gender', genIds);
-        }
-      });
-    }
-    const [{ count }] = await countQuery.count('* as count');
-    const total = parseInt(count);
-
+    // Final query with joins and pagination
     const products = await query
-      .orderBy(`products.${sortField} `, order)
+      .leftJoin('categories', knex.raw('products.category::text'), knex.raw('categories.id::text'))
+      .leftJoin(
+        knex.raw(
+          "(SELECT product_id, ROUND(AVG(rating)::numeric, 2) AS average_rating, COUNT(*)::int AS review_count FROM product_reviews WHERE status = 'approved' GROUP BY product_id) pr"
+        ),
+        'products.id',
+        'pr.product_id'
+      )
+      .select('products.*', 'categories.name as category_name', 'pr.average_rating', 'pr.review_count')
+      .orderBy(`products.${sortField}`, order)
       .limit(limit)
       .offset(offset);
 
-    // Normalize: average_rating as number, review_count as integer (products.* may have string from join)
-    const normalized = products.map((p) => ({
-      ...p,
-      average_rating: p.average_rating != null ? parseFloat(p.average_rating) : null,
-      review_count: p.review_count != null ? parseInt(p.review_count, 10) : 0
-    }));
-
     return {
-      products: normalized,
+      products,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
         total,
         totalPages: Math.ceil(total / limit)
       }
