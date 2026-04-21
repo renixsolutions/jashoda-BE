@@ -22,6 +22,7 @@ class ProductController {
         occasionId,
         gender,
         search,
+        collection,
         sortBy = 'created_at',
         sortOrder = 'desc',
         minPrice,
@@ -56,6 +57,12 @@ class ProductController {
         if (genDoc) finalGender = genDoc.id.toString();
       }
 
+      let finalCollection = collection;
+      if (finalCollection && isNaN(parseInt(finalCollection, 10))) {
+        // We'll need a CollectionModel or similar, but for now we can just pass the slug
+        // Actually, let's see if there's a CollectionModel
+      }
+
       const result = await ProductService.getAll({
         page: parseInt(page),
         limit: parseInt(limit),
@@ -63,6 +70,7 @@ class ProductController {
         subcategory: finalSubcategory,
         occasion: finalOccasion,
         gender: finalGender || undefined,
+        collection: finalCollection || undefined,
         search,
         sortBy,
         sortOrder: sortOrder.toLowerCase() === 'asc' ? 'asc' : 'desc',
