@@ -1,5 +1,6 @@
 const CartModel = require('./cart.model');
 const ProductModel = require('../products/product.model');
+const knex = require('../../db/knex');
 const { toFullUrl } = require('../../utils/helpers');
 const config = require('../../config/app');
 
@@ -17,10 +18,15 @@ class CartService {
     );
     const productMap = Object.fromEntries(products.filter(Boolean).map((p) => [p.id, p]));
 
-    const itemsWithProduct = items
-      .map((item) => {
+    const itemsWithProduct = await Promise.all(items.map(async (item) => {
         const product = productMap[item.product_id];
         if (!product) return null;
+        
+        let sizeInfo = null;
+        if (item.size_id) {
+          sizeInfo = await knex('ring_sizes').where({ id: item.size_id }).first();
+        }
+
         const effectivePrice = product.discount_price && parseFloat(product.discount_price) > 0
           ? parseFloat(product.discount_price)
           : parseFloat(product.price);
@@ -31,6 +37,9 @@ class CartService {
           quantity: item.quantity,
           price: parseFloat(item.price),
           subtotal,
+          selected_size: sizeInfo ? sizeInfo.size : null,
+          selected_size_id: item.size_id,
+          selected_size_diameter: sizeInfo ? sizeInfo.diameter : null,
           product: {
             id: product.id,
             name: product.name,
@@ -44,7 +53,7 @@ class CartService {
           }
         };
       })
-      .filter(Boolean);
+    ).then(res => res.filter(Boolean));
 
     const subtotal = itemsWithProduct.reduce((sum, i) => sum + i.subtotal, 0);
 
@@ -56,13 +65,25 @@ class CartService {
     };
   }
 
-  static async addToCart(userId, productId, quantity = 1) {
+  static async addToCart(userId, productId, quantity = 1, sizeId = null) {
     const product = await ProductModel.findById(productId);
     if (!product) throw new Error('Product not found');
     if (product.status !== 'active') throw new Error('Product is not available');
-    const stock = product.stock_quantity != null ? parseInt(product.stock_quantity, 10) : 0;
-    if (product.stock_status === 'out_of_stock' || stock < quantity) {
-      throw new Error('Insufficient stock or product is out of stock');
+    
+    // Check variants stock if sizeId is provided
+    if (sizeId && product.variants) {
+      const variants = Array.isArray(product.variants) ? product.variants : JSON.parse(product.variants || '[]');
+      const variant = variants.find(v => v.size_id == sizeId);
+      if (variant) {
+        if (variant.quantity < quantity) {
+          throw new Error(`Insufficient stock for size ${variant.size}`);
+        }
+      }
+    } else {
+        const stock = product.stock_quantity != null ? parseInt(product.stock_quantity, 10) : 0;
+        if (product.stock_status === 'out_of_stock' || stock < quantity) {
+        throw new Error('Insufficient stock or product is out of stock');
+        }
     }
 
     const effectivePrice = product.discount_price && parseFloat(product.discount_price) > 0
@@ -70,7 +91,7 @@ class CartService {
       : parseFloat(product.price);
 
     const cart = await CartModel.findOrCreateByUserId(userId);
-    const item = await CartModel.addItem(cart.id, productId, quantity, effectivePrice);
+    const item = await CartModel.addItem(cart.id, productId, quantity, effectivePrice, sizeId);
     return this.getCartWithItems(userId);
   }
 
@@ -85,8 +106,20 @@ class CartService {
     }
 
     const product = await ProductModel.findById(item.product_id);
-    const stock = product?.stock_quantity != null ? parseInt(product.stock_quantity, 10) : 0;
-    if (quantity > stock) throw new Error('Insufficient stock');
+    
+    // Check variant-specific stock if size_id exists
+    if (item.size_id && product.variants) {
+      const variants = Array.isArray(product.variants) ? product.variants : JSON.parse(product.variants || '[]');
+      const variant = variants.find(v => v.size_id == item.size_id);
+      if (variant) {
+        if (quantity > variant.quantity) {
+          throw new Error(`Insufficient stock for size ${variant.size}`);
+        }
+      }
+    } else {
+      const stock = product?.stock_quantity != null ? parseInt(product.stock_quantity, 10) : 0;
+      if (quantity > stock) throw new Error('Insufficient stock');
+    }
 
     await CartModel.updateItemQuantity(cartItemId, quantity);
     return this.getCartWithItems(userId);

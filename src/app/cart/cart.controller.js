@@ -21,8 +21,8 @@ class CartController {
   static async addToCart(req, res) {
     try {
       const userId = req.user.id;
-      const { product_id, quantity = 1 } = req.body;
-      const cart = await CartService.addToCart(userId, product_id, quantity);
+      const { product_id, quantity = 1, size_id } = req.body;
+      const cart = await CartService.addToCart(userId, product_id, quantity, size_id);
       return sendSuccess(res, 200, 'Item added to cart', cart);
     } catch (error) {
       logger.error('Add to cart error:', error);

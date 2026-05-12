@@ -4,6 +4,9 @@ const { sanitizeObject } = require('../../utils/helpers');
 class ProductModel {
   static async create(productData) {
     const sanitized = sanitizeObject(productData);
+    if (sanitized.variants) {
+      sanitized.variants = JSON.stringify(sanitized.variants);
+    }
     const [product] = await knex('products')
       .insert(sanitized)
       .returning('*');
@@ -427,6 +430,9 @@ class ProductModel {
 
   static async update(id, productData) {
     const sanitized = sanitizeObject(productData);
+    if (sanitized.variants) {
+      sanitized.variants = JSON.stringify(sanitized.variants);
+    }
     sanitized.updated_at = knex.fn.now();
     const [product] = await knex('products')
       .where({ id })

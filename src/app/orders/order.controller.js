@@ -7,8 +7,8 @@ class OrderController {
   static async placeOrder(req, res) {
     try {
       const userId = req.user.id;
-      const { payment_method, shipping_address, shipping_address_id } = req.body;
-      const order = await OrderService.placeOrder(userId, { payment_method, shipping_address, shipping_address_id });
+      const { payment_method, shipping_address, shipping_address_id, coupon_code } = req.body;
+      const order = await OrderService.placeOrder(userId, { payment_method, shipping_address, shipping_address_id, coupon_code });
       return sendSuccess(res, 201, 'Order placed successfully', order);
     } catch (error) {
       logger.error('Place order error:', error);

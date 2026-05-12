@@ -58,7 +58,8 @@ class ProductService {
       ...product,
       image_url: product.image_url ? toFullUrl(product.image_url, config.appUrl) : product.image_url,
       video_url: product.video_url ? toFullUrl(product.video_url, config.appUrl) : product.video_url,
-      images: withFullImageUrls(productImages)
+      images: withFullImageUrls(productImages),
+      variants: typeof product.variants === 'string' ? JSON.parse(product.variants) : product.variants
     };
   }
 
@@ -70,6 +71,17 @@ class ProductService {
       ProductModel.getImages(product.id),
       ProductModel.getAverageRatingAndCount(product.id)
     ]);
+    
+    // Parse variants if they are stored as a JSON string
+    if (typeof product.variants === 'string') {
+      try {
+        product.variants = JSON.parse(product.variants);
+      } catch (e) {
+        console.error("Error parsing product variants:", e);
+        product.variants = [];
+      }
+    }
+
 
     return {
       ...product,
@@ -89,6 +101,17 @@ class ProductService {
       ProductModel.getImages(product.id),
       ProductModel.getAverageRatingAndCount(product.id)
     ]);
+
+    // Parse variants if they are stored as a JSON string
+    if (typeof product.variants === 'string') {
+      try {
+        product.variants = JSON.parse(product.variants);
+      } catch (e) {
+        console.error("Error parsing product variants:", e);
+        product.variants = [];
+      }
+    }
+
 
     return {
       ...product,
@@ -203,9 +226,11 @@ class ProductService {
         const images = await ProductModel.getImages(product.id);
         return {
           ...product,
+          variants: typeof product.variants === 'string' ? JSON.parse(product.variants) : product.variants,
           image_url: product.image_url ? toFullUrl(product.image_url, baseUrl) : product.image_url,
           images: withFullImageUrls(images)
         };
+
       })
     );
 
@@ -256,7 +281,8 @@ class ProductService {
       ...updatedProduct,
       image_url: updatedProduct.image_url ? toFullUrl(updatedProduct.image_url, config.appUrl) : updatedProduct.image_url,
       video_url: updatedProduct.video_url ? toFullUrl(updatedProduct.video_url, config.appUrl) : updatedProduct.video_url,
-      images: withFullImageUrls(productImages)
+      images: withFullImageUrls(productImages),
+      variants: typeof updatedProduct.variants === 'string' ? JSON.parse(updatedProduct.variants) : updatedProduct.variants
     };
   }
 

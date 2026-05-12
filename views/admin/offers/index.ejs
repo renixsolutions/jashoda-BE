@@ -1,0 +1,122 @@
+<%-
+  include('../../partials/admin_layout', {
+    title: title,
+    apiBaseUrl: apiBaseUrl,
+    body: `
+    <div class="card">
+      <div class="card-header">
+        <div class="top-actions">
+          <h1>Offers & Coupons</h1>
+          <div style="display:flex; gap:12px;">
+            <button class="btn btn-primary" id="btnNewOffer">
+              <i class="ri-add-line"></i> New Offer
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p style="margin-top:0; margin-bottom:16px; font-size:14px; color:#6b7280;">
+          Create and manage discount coupons and promotional offers.
+        </p>
+
+        <div id="offersTableContainer">
+          <div class="table-loader active" id="offersLoader">
+            <div class="loader"></div>
+            <div class="loader-text">Fetching offers...</div>
+          </div>
+          <table id="offersTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Code</th>
+                <th>Discount</th>
+                <th>Min. Purchase</th>
+                <th>Expiry</th>
+                <th>Status</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="offersList"></tbody>
+          </table>
+          <div id="offersEmptyState" class="empty-state">
+            <span>No offers found. Create your first campaign!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for Create/Edit -->
+    <div class="large-modal" id="offerModal">
+      <div class="large-modal-content">
+        <div class="large-modal-header">
+          <h2 id="modalTitle">New Offer</h2>
+          <button type="button" class="btn-close" onclick="closeOfferModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+        </div>
+        <form id="offerForm">
+          <input type="hidden" id="offerId" />
+          <div class="large-modal-body">
+            <div class="form-row">
+              <div class="form-group required-field">
+                <label>Title</label>
+                <input type="text" id="offerTitle" placeholder="e.g. Diwali Special" required />
+              </div>
+              <div class="form-group required-field">
+                <label>Coupon Code</label>
+                <input type="text" id="offerCode" placeholder="e.g. DIWALI20" style="text-transform:uppercase;" required />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group required-field">
+                <label>Discount Type</label>
+                <select id="offerDiscountType" required>
+                  <option value="PERCENTAGE">Percentage (%)</option>
+                  <option value="FIXED">Fixed Amount (₹)</option>
+                </select>
+              </div>
+              <div class="form-group required-field">
+                <label>Discount Value</label>
+                <input type="number" id="offerDiscountValue" min="1" required />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Min. Purchase (₹)</label>
+                <input type="number" id="offerMinPurchase" value="0" />
+              </div>
+              <div class="form-group required-field">
+                <label>Expiry Date</label>
+                <input type="date" id="offerExpiryDate" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Description</label>
+              <textarea id="offerDescription" placeholder="Short description for customers..."></textarea>
+            </div>
+
+            <div class="form-group" style="display:flex; gap:20px;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="offerIsActive" checked style="width:auto; min-height:auto;" />
+                Active
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="offerIsOneTime" style="width:auto; min-height:auto;" />
+                One-time use per customer
+              </label>
+            </div>
+          </div>
+          <div class="large-modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeOfferModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btnSaveOffer">Save Offer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    `,
+    scripts: `
+      <script src="/static/js/admin-offers.js"></script>
+    `
+  })
+%>

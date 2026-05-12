@@ -16,14 +16,18 @@ class CartModel {
       .orderBy('id', 'asc');
   }
 
-  static async findItemByCartAndProduct(cartId, productId) {
-    return knex('cart_items')
-      .where({ cart_id: cartId, product_id: productId })
-      .first();
+  static async findItemByCartAndProduct(cartId, productId, sizeId = null) {
+    const query = knex('cart_items').where({ cart_id: cartId, product_id: productId });
+    if (sizeId) {
+      query.where({ size_id: sizeId });
+    } else {
+      query.whereNull('size_id');
+    }
+    return query.first();
   }
 
-  static async addItem(cartId, productId, quantity, price) {
-    const existing = await this.findItemByCartAndProduct(cartId, productId);
+  static async addItem(cartId, productId, quantity, price, sizeId = null) {
+    const existing = await this.findItemByCartAndProduct(cartId, productId, sizeId);
     if (existing) {
       const [updated] = await knex('cart_items')
         .where({ id: existing.id })
@@ -35,7 +39,7 @@ class CartModel {
       return updated;
     }
     const [inserted] = await knex('cart_items')
-      .insert({ cart_id: cartId, product_id: productId, quantity, price })
+      .insert({ cart_id: cartId, product_id: productId, quantity, price, size_id: sizeId })
       .returning('*');
     return inserted;
   }

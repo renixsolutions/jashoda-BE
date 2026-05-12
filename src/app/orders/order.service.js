@@ -17,7 +17,9 @@ function generateOrderNumber() {
 }
 
 class OrderService {
-  static async placeOrder(userId, { payment_method, shipping_address, shipping_address_id }) {
+  static async placeOrder(userId, { payment_method, shipping_address, shipping_address_id, coupon_code }) {
+    const CouponModel = require('../coupons/coupon.model');
+    const knex = require('../../db/connection').knex;
     const cartData = await CartService.getCartWithItems(userId);
     if (!cartData.items || cartData.items.length === 0) {
       throw new Error('Cart is empty');
@@ -26,16 +28,51 @@ class OrderService {
     // Validate stock again before placing order
     for (const item of cartData.items) {
       const product = await ProductModel.findById(item.product_id);
-      const stock = parseInt(product.stock_quantity, 10) || 0;
-      if (stock < item.quantity) {
-        throw new Error(`Insufficient stock for product: ${item.product.name}`);
+      
+      if (item.selected_size_id && product.variants) {
+        const variants = Array.isArray(product.variants) ? product.variants : JSON.parse(product.variants || '[]');
+        const variant = variants.find(v => v.size_id == item.selected_size_id);
+        if (variant && variant.quantity < item.quantity) {
+          throw new Error(`Insufficient stock for size ${variant.size} of product: ${product.name}`);
+        }
+      } else {
+        const stock = parseInt(product.stock_quantity, 10) || 0;
+        if (stock < item.quantity) {
+          throw new Error(`Insufficient stock for product: ${item.product.name}`);
+        }
       }
     }
 
     const subtotal = cartData.subtotal;
-    const tax = 0;
+    let tax = Math.round((subtotal * 0.03) * 100) / 100; // 3% GST
     const shipping = 0;
-    const discount = 0;
+    let discount = 0;
+    let couponId = null;
+
+    if (coupon_code) {
+      const coupon = await CouponModel.findByCode(coupon_code.toUpperCase());
+      if (coupon && coupon.is_active) {
+        // Validate one-time usage
+        if (coupon.is_one_time) {
+          const usage = await knex('user_coupons')
+            .where({ user_id: userId, coupon_id: coupon.id, is_used: true })
+            .first();
+          if (usage) {
+            throw new Error('You have already used this coupon');
+          }
+        }
+
+        if (subtotal >= coupon.min_order_amount) {
+          if (coupon.type === 'percentage') {
+            discount = (subtotal * coupon.value) / 100;
+          } else {
+            discount = parseFloat(coupon.value);
+          }
+          couponId = coupon.id;
+        }
+      }
+    }
+
     const total = Math.round((subtotal + tax + shipping - discount) * 100) / 100;
 
     let orderNumber = generateOrderNumber();
@@ -73,8 +110,34 @@ class OrderService {
       shipping,
       discount,
       total,
-      shipping_address: finalShippingAddress
+      shipping_address: finalShippingAddress,
+      coupon_id: couponId
     });
+
+    // Record one-time coupon usage
+    if (couponId) {
+      const coupon = await CouponModel.findById(couponId);
+      if (coupon && coupon.is_one_time) {
+        const existing = await knex('user_coupons')
+          .where({ user_id: userId, coupon_id: couponId })
+          .first();
+        
+        if (existing) {
+          await knex('user_coupons')
+            .where({ id: existing.id })
+            .update({ is_used: true, used_at: new Date(), updated_at: new Date() });
+        } else {
+          await knex('user_coupons').insert({
+            user_id: userId,
+            coupon_id: couponId,
+            is_used: true,
+            used_at: new Date(),
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+        }
+      }
+    }
 
     for (const item of cartData.items) {
       await OrderModel.createOrderItem({
@@ -83,13 +146,15 @@ class OrderService {
         quantity: item.quantity,
         price: item.price,
         product_name: item.product.name,
-        sku: item.product.sku || null
+        sku: item.product.sku || null,
+        size_id: item.selected_size_id || null,
+        size_label: item.selected_size || null
       });
     }
 
     if (payment_method === 'cod') {
       for (const item of cartData.items) {
-        await decrementStock(item.product_id, item.quantity);
+        await decrementStock(item.product_id, item.quantity, item.selected_size_id);
       }
       await CartModel.clearCart(cartData.cart_id);
       return this.getOrderById(order.id, userId);
@@ -125,7 +190,7 @@ class OrderService {
 
     const items = await OrderModel.getOrderItems(orderId);
     for (const item of items) {
-      await decrementStock(item.product_id, item.quantity);
+      await decrementStock(item.product_id, item.quantity, item.size_id);
     }
     const cart = await CartModel.findOrCreateByUserId(userId);
     await CartModel.clearCart(cart.id);
@@ -209,14 +274,14 @@ class OrderService {
     if (status === 'cancelled' && order.status !== 'cancelled') {
         const items = await OrderModel.getOrderItems(orderId);
         for (const item of items) {
-            await incrementStock(item.product_id, item.quantity);
+            await incrementStock(item.product_id, item.quantity, item.size_id);
         }
     } 
     // If order was cancelled and is now being restored, decrement stock again
     else if (order.status === 'cancelled' && status !== 'cancelled') {
         const items = await OrderModel.getOrderItems(orderId);
         for (const item of items) {
-            await decrementStock(item.product_id, item.quantity);
+            await decrementStock(item.product_id, item.quantity, item.size_id);
         }
     }
 
@@ -232,7 +297,7 @@ class OrderService {
     if (order.payment_status !== 'paid') {
         const items = await OrderModel.getOrderItems(orderId);
         for (const item of items) {
-            await decrementStock(item.product_id, item.quantity);
+            await decrementStock(item.product_id, item.quantity, item.size_id);
         }
     }
 

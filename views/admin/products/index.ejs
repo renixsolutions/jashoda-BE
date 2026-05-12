@@ -272,8 +272,12 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="productRingSize">Ring Size</label>
-                  <input id="productRingSize" placeholder="e.g., 6, 7, 8" />
+                  <label>Product Sizes & Quantities</label>
+                  <div id="variantsContainer" style="margin-top: 10px;">
+                    <!-- Variants will be added here -->
+                  </div>
+                  <button type="button" class="btn btn-secondary btn-sm" id="addVariantBtn" style="margin-top:10px;">+ Add Size Variant</button>
+                  <div class="help-text" style="margin-top:8px;">Select size and enter available quantity for each.</div>
                 </div>
               </div>
               <div class="form-row">
@@ -293,8 +297,9 @@
               <div class="form-section-title">Inventory</div>
               <div class="form-row">
                 <div class="form-group">
-                  <label for="productStockQuantity">Stock Quantity</label>
+                  <label for="productStockQuantity">Total Stock Quantity</label>
                   <input id="productStockQuantity" type="number" min="0" value="0" />
+                  <div class="help-text">Auto-calculated if sizes are added</div>
                 </div>
                 <div class="form-group">
                   <label for="productLowStockThreshold">Low Stock Threshold</label>
@@ -312,6 +317,7 @@
                 </div>
               </div>
             </div>
+
 
             <!-- Images & Media -->
             <div class="form-section">

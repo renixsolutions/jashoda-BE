@@ -61,5 +61,9 @@ router.put('/me/addresses/:id', authenticate, addressValidation, UserController.
 router.delete('/me/addresses/:id', authenticate, UserController.deleteMyAddress);
 router.post('/me/addresses/:id/default', authenticate, UserController.setMyDefaultAddress);
 
+// Admin routes for user coupons
+router.get('/:id/coupons', authenticate, UserController.getUserCoupons);
+router.post('/:id/coupons/:couponId/reset', authenticate, UserController.resetUserCoupon);
+
 module.exports = router;
 

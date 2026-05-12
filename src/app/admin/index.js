@@ -61,6 +61,15 @@ router.get('/testimonials', (req, res) => {
   });
 });
 
+// Offers management page
+router.get('/offers', (req, res) => {
+  res.render('admin/offers/index', {
+    title: 'Offers & Coupons | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
+
 // Categories management page
 router.get('/categories', (req, res) => {
   res.render('admin/categories/index', {
@@ -137,6 +146,14 @@ router.get('/collections', (req, res) => {
 router.get('/home-videos', (req, res) => {
   res.render('admin/home-videos/index', {
     title: 'Home Video | Admin',
+    apiBaseUrl: '/api/v1'
+  });
+});
+
+// Ring Sizes management page
+router.get('/ring-sizes', (req, res) => {
+  res.render('admin/ring-sizes/index', {
+    title: 'Ring Sizes | Admin',
     apiBaseUrl: '/api/v1'
   });
 });

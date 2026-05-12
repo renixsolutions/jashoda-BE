@@ -56,7 +56,7 @@ const createOrUpdateValidation = [
   body('shipping_class').optional({ nullable: true }).isString().isLength({ max: 50 }),
   body('returnable').optional({ nullable: true }).isBoolean(),
   body('warranty').optional({ nullable: true }).isString().isLength({ max: 100 }),
-  body('variants').optional({ nullable: true }).isObject(),
+  body('variants').optional({ nullable: true }).isArray(),
   body('hover_image_url').optional({ nullable: true }).isString().isLength({ max: 500 }),
   body('video_url').optional({ nullable: true }).isString().isLength({ max: 500 }),
   validate

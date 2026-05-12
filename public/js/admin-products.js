@@ -199,6 +199,69 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   let productImages = [];
+  let availableRingSizes = [];
+
+  async function fetchRingSizes() {
+    try {
+      const res = await fetch(`${API_BASE}/ring-sizes/active`);
+      const data = await res.json();
+      availableRingSizes = data.data || data;
+    } catch (err) {
+      console.error('Failed to load ring sizes:', err);
+    }
+  }
+
+  function createVariantRow(variant = null) {
+    const container = document.getElementById('variantsContainer');
+    if (!container) return;
+
+    const row = document.createElement('div');
+    row.className = 'form-row';
+    row.style.marginBottom = '8px';
+    row.style.gridTemplateColumns = '1.5fr 1fr 32px';
+    row.style.gap = '8px';
+    row.style.alignItems = 'center';
+    row.style.display = 'grid';
+
+    let options = '<option value="">Select Size</option>';
+    availableRingSizes.forEach(s => {
+      const isSelected = variant && (variant.size === s.size || variant.size_id == s.id);
+      options += `<option value="${s.id}" data-size="${s.size}" data-diameter="${s.diameter || ''}" ${isSelected ? 'selected' : ''}>${s.size} (${s.diameter || 'no diameter'})</option>`;
+    });
+
+    row.innerHTML = `
+      <div class="form-group" style="margin-bottom:0;">
+        <select class="variant-size-select" style="min-height:36px; padding:4px 8px;" required>
+          ${options}
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <input type="number" class="variant-qty-input" placeholder="Qty" min="0" value="${variant ? variant.quantity : 0}" style="min-height:36px; padding:4px 8px;" required />
+      </div>
+      <button type="button" class="btn btn-danger btn-sm remove-variant-btn" style="min-width:32px; height:36px; padding:0; display:flex; align-items:center; justify-content:center;">×</button>
+    `;
+
+    container.appendChild(row);
+
+    // Update total stock on qty change
+    row.querySelector('.variant-qty-input').addEventListener('input', calculateTotalStock);
+    row.querySelector('.remove-variant-btn').addEventListener('click', () => {
+      row.remove();
+      calculateTotalStock();
+    });
+  }
+
+  function calculateTotalStock() {
+    const qtyInputs = document.querySelectorAll('.variant-qty-input');
+    if (qtyInputs.length === 0) return;
+    
+    let total = 0;
+    qtyInputs.forEach(input => {
+      total += parseInt(input.value) || 0;
+    });
+    const totalInput = document.getElementById('productStockQuantity');
+    if (totalInput) totalInput.value = total;
+  }
 
   function updateImagesPreview() {
     const container = document.getElementById('productImagesPreview');
@@ -543,7 +606,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('productStoneWeight').value = product ? (product.stone_weight || '') : '';
     document.getElementById('productStoneCount').value = product ? (product.stone_count || '') : '';
     document.getElementById('productCertification').value = product ? (product.certification || '') : '';
-    document.getElementById('productRingSize').value = product ? (product.ring_size || '') : '';
     document.getElementById('productLength').value = product ? (product.length || '') : '';
     document.getElementById('productWidth').value = product ? (product.width || '') : '';
 
@@ -582,6 +644,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     videoStatus.textContent = '';
     document.getElementById('productVideoFile').value = '';
+    
+    // Variants logic
+    await fetchRingSizes();
+    const variantsContainer = document.getElementById('variantsContainer');
+    if (variantsContainer) {
+      variantsContainer.innerHTML = '';
+      if (product && product.variants && Array.isArray(product.variants)) {
+        product.variants.forEach(v => createVariantRow(v));
+      }
+    }
     
     clearProductFormValidation();
     document.getElementById('productFormError').textContent = '';
@@ -686,7 +758,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const stoneWeight = document.getElementById('productStoneWeight').value ? parseFloat(document.getElementById('productStoneWeight').value) : null;
     const stoneCount = document.getElementById('productStoneCount').value ? parseInt(document.getElementById('productStoneCount').value) : null;
     const certification = document.getElementById('productCertification').value || null;
-    const ringSize = document.getElementById('productRingSize').value.trim() || null;
     const length = document.getElementById('productLength').value ? parseFloat(document.getElementById('productLength').value) : null;
     const width = document.getElementById('productWidth').value ? parseFloat(document.getElementById('productWidth').value) : null;
 
@@ -730,7 +801,6 @@ document.addEventListener('DOMContentLoaded', () => {
       stone_weight: stoneWeight ?? undefined,
       stone_count: stoneCount ?? undefined,
       certification: certification || undefined,
-      ring_size: ringSize || undefined,
       length: length ?? undefined,
       width: width ?? undefined,
       stock_quantity: stockQuantity,
@@ -744,6 +814,29 @@ document.addEventListener('DOMContentLoaded', () => {
       returnable,
       warranty: warranty || undefined
     };
+
+    // Add variants to payload
+    const variantRows = document.querySelectorAll('#variantsContainer .form-row');
+    if (variantRows.length > 0) {
+      const variants = [];
+      variantRows.forEach(row => {
+        const select = row.querySelector('.variant-size-select');
+        const qtyInput = row.querySelector('.variant-qty-input');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (selectedOption && selectedOption.value) {
+          variants.push({
+            size_id: parseInt(selectedOption.value),
+            size: selectedOption.getAttribute('data-size'),
+            diameter: selectedOption.getAttribute('data-diameter'),
+            quantity: parseInt(qtyInput.value) || 0
+          });
+        }
+      });
+      if (variants.length > 0) {
+        payload.variants = variants;
+      }
+    }
 
     Object.keys(payload).forEach(key => {
       if (payload[key] === undefined || payload[key] === null) delete payload[key];
@@ -869,6 +962,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const cancelBtn = document.getElementById('cancelProductBtn');
   if (cancelBtn) cancelBtn.addEventListener('click', closeProductModal);
+
+  const addVariantBtn = document.getElementById('addVariantBtn');
+  if (addVariantBtn) {
+    addVariantBtn.addEventListener('click', () => createVariantRow());
+  }
 
   const closeModalBtn = document.getElementById('closeProductModal');
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeProductModal);

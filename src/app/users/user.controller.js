@@ -223,6 +223,44 @@ class UserController {
       return sendError(res, 500, error.message || messages.ERROR);
     }
   }
+
+  /**
+   * List coupons used by a user (Admin only)
+   */
+  static async getUserCoupons(req, res) {
+    try {
+      const { id } = req.params;
+      const knex = require('../../db/connection').knex;
+      const coupons = await knex('user_coupons')
+        .join('coupons', 'user_coupons.coupon_id', 'coupons.id')
+        .where('user_coupons.user_id', id)
+        .select('user_coupons.*', 'coupons.code', 'coupons.title');
+      
+      return sendSuccess(res, 200, 'User coupons fetched successfully', coupons);
+    } catch (error) {
+      logger.error('Get user coupons error:', error);
+      return sendError(res, 500, error.message || messages.ERROR);
+    }
+  }
+
+  /**
+   * Reset a one-time coupon usage for a user (Admin only)
+   */
+  static async resetUserCoupon(req, res) {
+    try {
+      const { id, couponId } = req.params;
+      const knex = require('../../db/connection').knex;
+      
+      await knex('user_coupons')
+        .where({ user_id: id, coupon_id: couponId })
+        .update({ is_used: false, used_at: null, updated_at: new Date() });
+      
+      return sendSuccess(res, 200, 'User coupon reset successfully');
+    } catch (error) {
+      logger.error('Reset user coupon error:', error);
+      return sendError(res, 500, error.message || messages.ERROR);
+    }
+  }
 }
 
 module.exports = UserController;

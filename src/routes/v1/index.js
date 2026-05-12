@@ -30,6 +30,11 @@ const collectionRoutes = require('../../app/collections/collection.routes');
 const adminCollectionRoutes = require('../../app/collections/collection.admin.routes');
 const homeVideoRoutes = require('../../app/home-videos/home-video.routes');
 const adminHomeVideoRoutes = require('../../app/home-videos/home-video.admin.routes');
+const ringSizeRoutes = require('../../app/ring-sizes/ring-size.routes');
+const couponRoutes = require('../../app/coupons/coupon.routes');
+const adminCouponRoutes = require('../../app/coupons/coupon.admin.routes');
+
+
 const router = express.Router();
 
 // API version 1 routes
@@ -49,6 +54,9 @@ router.use('/testimonials', testimonialRoutes);
 router.use('/home-ads', homeAdRoutes);
 router.use('/collections', collectionRoutes);
 router.use('/home-videos', homeVideoRoutes);
+router.use('/ring-sizes', ringSizeRoutes);
+router.use('/offers', couponRoutes);
+
 
 // Customer APIs (authenticated)
 router.use('/cart', cartRoutes);
@@ -70,5 +78,8 @@ router.use('/admin/testimonials', adminTestimonialRoutes);
 router.use('/admin/home-ads', adminHomeAdRoutes);
 router.use('/admin/collections', adminCollectionRoutes);
 router.use('/admin/home-videos', adminHomeVideoRoutes);
+router.use('/admin/ring-sizes', ringSizeRoutes);
+router.use('/admin/offers', adminCouponRoutes);
+
 
 module.exports = router;

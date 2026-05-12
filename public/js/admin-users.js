@@ -229,7 +229,19 @@ document.addEventListener('DOMContentLoaded', () => {
     return data.data || data.orders || [];
   }
 
-  function openUserDetailsModal(user, orders) {
+  async function fetchUserCoupons(id) {
+    const token = requireAuth();
+    const res = await fetch(`${API_BASE}/users/${id}/coupons`, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to load user coupons');
+    return data.data || [];
+  }
+
+  // Reset coupon logic is handled via event delegation on userDetailsBody
+
+  function openUserDetailsModal(user, orders, coupons = []) {
     const modal = document.getElementById('userDetailsModal');
     const titleEl = document.getElementById('userDetailsTitle');
     const bodyEl = document.getElementById('userDetailsBody');
@@ -303,7 +315,49 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
-    bodyEl.innerHTML = summaryHtml + ordersTable;
+    const couponsRows = coupons
+      .map(
+        (c) => `
+        <tr>
+          <td>${c.title || c.code}</td>
+          <td><code>${c.code}</code></td>
+          <td>${c.is_used ? '<span class="badge badge-status-inactive">Used</span>' : '<span class="badge badge-status-active">Available</span>'}</td>
+          <td>${c.used_at ? new Date(c.used_at).toLocaleString('en-IN') : '-'}</td>
+          <td style="text-align:right;">
+            ${c.is_used ? `<button class="btn btn-sm btn-secondary reset-coupon-btn" data-user="${user.id}" data-coupon="${c.coupon_id}">Reset</button>` : ''}
+          </td>
+        </tr>
+      `
+      )
+      .join('');
+
+    const couponsTable = `
+      <div class="form-section">
+        <div class="form-section-title">One-Time Offers</div>
+        ${
+          coupons.length
+            ? `
+          <table style="margin-top:8px; font-size:13px;">
+            <thead>
+              <tr>
+                <th>Offer</th>
+                <th>Code</th>
+                <th>Status</th>
+                <th>Used At</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${couponsRows}
+            </tbody>
+          </table>
+        `
+            : '<p>No one-time offers assigned or used yet.</p>'
+        }
+      </div>
+    `;
+
+    bodyEl.innerHTML = summaryHtml + ordersTable + couponsTable;
 
     // Simple per-user orders status bar chart
     const chartEl = document.getElementById('userOrdersStatusChart');
@@ -387,8 +441,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const action = btn.getAttribute('data-action');
     if (!id || action !== 'view') return;
     try {
-      const [user, orders] = await Promise.all([fetchUser(id), fetchUserOrders(id)]);
-      openUserDetailsModal(user, orders);
+      const [user, orders, coupons] = await Promise.all([fetchUser(id), fetchUserOrders(id), fetchUserCoupons(id)]);
+      openUserDetailsModal(user, orders, coupons);
     } catch (err) {
       if (window.showToast) window.showToast('error', err.message || 'Failed to load user details');
     }
@@ -411,6 +465,36 @@ document.addEventListener('DOMContentLoaded', () => {
     detailsModal.addEventListener('click', (e) => {
       if (e.target === detailsModal) {
         closeUserDetailsModal();
+      }
+    });
+  }
+
+  const userDetailsBody = document.getElementById('userDetailsBody');
+  if (userDetailsBody) {
+    userDetailsBody.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.reset-coupon-btn');
+      if (!btn) return;
+      
+      const userId = btn.getAttribute('data-user');
+      const couponId = btn.getAttribute('data-coupon');
+      if (!userId || !couponId) return;
+
+      if (!confirm('Are you sure you want to reset this coupon for the user? They will be able to use it again.')) return;
+      const token = requireAuth();
+      try {
+        const res = await fetch(`${API_BASE}/users/${userId}/coupons/${couponId}/reset`, {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to reset coupon');
+        if (window.showToast) window.showToast('success', 'Coupon reset successfully');
+        
+        // Refresh modal data
+        const [user, orders, coupons] = await Promise.all([fetchUser(userId), fetchUserOrders(userId), fetchUserCoupons(userId)]);
+        openUserDetailsModal(user, orders, coupons);
+      } catch (err) {
+        if (window.showToast) window.showToast('error', err.message);
       }
     });
   }
