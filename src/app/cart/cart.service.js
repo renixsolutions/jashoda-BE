@@ -69,20 +69,24 @@ class CartService {
     const product = await ProductModel.findById(productId);
     if (!product) throw new Error('Product not found');
     if (product.status !== 'active') throw new Error('Product is not available');
+
+    const cart = await CartModel.findOrCreateByUserId(userId);
+    const existing = await CartModel.findItemByCartAndProduct(cart.id, productId, sizeId);
+    const targetQuantity = existing ? existing.quantity + quantity : quantity;
     
     // Check variants stock if sizeId is provided
     if (sizeId && product.variants) {
       const variants = Array.isArray(product.variants) ? product.variants : JSON.parse(product.variants || '[]');
       const variant = variants.find(v => v.size_id == sizeId);
       if (variant) {
-        if (variant.quantity < quantity) {
+        if (variant.quantity < targetQuantity) {
           throw new Error(`Insufficient stock for size ${variant.size}`);
         }
       }
     } else {
         const stock = product.stock_quantity != null ? parseInt(product.stock_quantity, 10) : 0;
-        if (product.stock_status === 'out_of_stock' || stock < quantity) {
-        throw new Error('Insufficient stock or product is out of stock');
+        if (stock < targetQuantity || (stock <= 0 && product.stock_status === 'out_of_stock')) {
+          throw new Error('Insufficient stock or product is out of stock');
         }
     }
 
@@ -90,7 +94,6 @@ class CartService {
       ? parseFloat(product.discount_price)
       : parseFloat(product.price);
 
-    const cart = await CartModel.findOrCreateByUserId(userId);
     const item = await CartModel.addItem(cart.id, productId, quantity, effectivePrice, sizeId);
     return this.getCartWithItems(userId);
   }
