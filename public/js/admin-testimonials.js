@@ -107,9 +107,36 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
 
-    imageInput.addEventListener('change', (e) => {
+    imageInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        const ext = file.name ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase() : '';
+        if (ext === '.heic' || ext === '.heif') {
+            const token = requireAuth();
+            const formData = new FormData();
+            formData.append('image', file);
+            try {
+                if (window.showToast) window.showToast('info', 'Uploading HEIC image directly...');
+                const res = await fetch(`${API_BASE}/admin/uploads/testimonial-image`, {
+                    method: 'POST',
+                    headers: { Authorization: 'Bearer ' + token },
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || 'Upload failed');
+
+                const url = data.data && data.data.url ? data.data.url : data.url;
+                document.getElementById('image_url').value = url;
+                imagePreview.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover;">`;
+                if (window.showToast) window.showToast('success', 'Image uploaded');
+            } catch (err) {
+                if (window.showToast) window.showToast('error', err.message || 'Failed to upload HEIC image');
+            } finally {
+                imageInput.value = '';
+            }
+            return;
+        }
 
         const reader = new FileReader();
         reader.onload = function(event) {

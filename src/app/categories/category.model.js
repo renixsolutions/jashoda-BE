@@ -4,6 +4,12 @@ const { sanitizeObject } = require('../../utils/helpers');
 class CategoryModel {
   static async create(categoryData) {
     const sanitized = sanitizeObject(categoryData);
+    if (sanitized.gender_images && typeof sanitized.gender_images === 'object') {
+      sanitized.gender_images = JSON.stringify(sanitized.gender_images);
+    }
+    if (sanitized.applicable_genders && Array.isArray(sanitized.applicable_genders)) {
+      sanitized.applicable_genders = JSON.stringify(sanitized.applicable_genders);
+    }
     const [category] = await knex('categories')
       .insert(sanitized)
       .returning('*');
@@ -87,6 +93,12 @@ class CategoryModel {
 
   static async update(id, categoryData) {
     const sanitized = sanitizeObject(categoryData);
+    if (sanitized.gender_images && typeof sanitized.gender_images === 'object') {
+      sanitized.gender_images = JSON.stringify(sanitized.gender_images);
+    }
+    if (sanitized.applicable_genders && Array.isArray(sanitized.applicable_genders)) {
+      sanitized.applicable_genders = JSON.stringify(sanitized.applicable_genders);
+    }
     sanitized.updated_at = knex.fn.now();
     const [category] = await knex('categories')
       .where({ id })

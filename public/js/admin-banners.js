@@ -113,8 +113,9 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = '';
         banners.forEach(b => {
             const tr = document.createElement('tr');
+            const isHeic = b.image_url && (b.image_url.toLowerCase().includes('.heic') || b.image_url.toLowerCase().includes('.heif'));
             const imgHtml = b.image_url
-                ? `<img src="${b.image_url}" style="width:80px; height:60px; object-fit:cover; border-radius:4px;" />`
+                ? (isHeic ? `<div style="width:80px; height:60px; display:flex; align-items:center; justify-content:center; background:#f3f4f6; border-radius:4px; font-size:11px; font-weight:bold; color:#4b5563; border:1px solid #e5e7eb;">HEIC</div>` : `<img src="${b.image_url}" style="width:80px; height:60px; object-fit:cover; border-radius:4px;" />`)
                 : 'N/A';
             const statusBadge = b.is_active
                 ? `<span class="badge" style="background:#e6f4ea;color:#1e8e3e;">Active</span>`
@@ -212,7 +213,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Upload failed');
             document.getElementById('bannerImageUrl').value = data.data.url;
-            document.getElementById('bannerImagePreview').innerHTML = `<img src="${data.data.url}" style="max-width:100%; height:120px; border-radius:4px; border:1px solid #ddd;" />`;
+            const isHeic = data.data.url.toLowerCase().includes('.heic') || data.data.url.toLowerCase().includes('.heif');
+            document.getElementById('bannerImagePreview').innerHTML = isHeic 
+                ? `<div style="width:100%; height:120px; display:flex; align-items:center; justify-content:center; background:#f0f9ff; color:#0284c7; font-weight:bold; border-radius:4px; border:1px solid #bae6fd;">[HEIC Image Uploaded]</div>` 
+                : `<img src="${data.data.url}" style="max-width:100%; height:120px; border-radius:4px; border:1px solid #ddd;" />`;
         } catch (err) {
             alert(err.message);
         } finally {
@@ -238,7 +242,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Upload failed');
             document.getElementById('bannerSecondaryImageUrl').value = data.data.url;
-            document.getElementById('bannerSecondaryImagePreview').innerHTML = `<img src="${data.data.url}" style="max-width:100%; height:120px; border-radius:4px; border:1px solid #ddd;" />`;
+            const isHeic = data.data.url.toLowerCase().includes('.heic') || data.data.url.toLowerCase().includes('.heif');
+            document.getElementById('bannerSecondaryImagePreview').innerHTML = isHeic 
+                ? `<div style="width:100%; height:120px; display:flex; align-items:center; justify-content:center; background:#f0f9ff; color:#0284c7; font-weight:bold; border-radius:4px; border:1px solid #bae6fd;">[HEIC Image Uploaded]</div>` 
+                : `<img src="${data.data.url}" style="max-width:100%; height:120px; border-radius:4px; border:1px solid #ddd;" />`;
         } catch (err) {
             alert(err.message);
         } finally {
@@ -342,10 +349,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (b.image_url) {
-            document.getElementById('bannerImagePreview').innerHTML = `<img src="${b.image_url}" style="max-width:100%; height:120px; border-radius:4px; border:1px solid #ddd;" />`;
+            const isHeic1 = b.image_url.toLowerCase().includes('.heic') || b.image_url.toLowerCase().includes('.heif');
+            document.getElementById('bannerImagePreview').innerHTML = isHeic1 
+                ? `<div style="width:100%; height:120px; display:flex; align-items:center; justify-content:center; background:#f0f9ff; color:#0284c7; font-weight:bold; border-radius:4px; border:1px solid #bae6fd;">[HEIC Image Uploaded]</div>` 
+                : `<img src="${b.image_url}" style="max-width:100%; height:120px; border-radius:4px; border:1px solid #ddd;" />`;
         }
         if (b.secondary_image_url) {
-            document.getElementById('bannerSecondaryImagePreview').innerHTML = `<img src="${b.secondary_image_url}" style="max-width:100%; height:120px; border-radius:4px; border:1px solid #ddd;" />`;
+            const isHeic2 = b.secondary_image_url.toLowerCase().includes('.heic') || b.secondary_image_url.toLowerCase().includes('.heif');
+            document.getElementById('bannerSecondaryImagePreview').innerHTML = isHeic2 
+                ? `<div style="width:100%; height:120px; display:flex; align-items:center; justify-content:center; background:#f0f9ff; color:#0284c7; font-weight:bold; border-radius:4px; border:1px solid #bae6fd;">[HEIC Image Uploaded]</div>` 
+                : `<img src="${b.secondary_image_url}" style="max-width:100%; height:120px; border-radius:4px; border:1px solid #ddd;" />`;
         }
         showModal();
     }

@@ -91,10 +91,28 @@
             </div>
 
             <div class="form-section">
-              <div class="form-section-title">Image</div>
+              <div class="form-section-title">Gender Restrictions & Customization</div>
+              <div class="form-group">
+                <label>Applicable Genders (Multi-select)</label>
+                <div class="help-text" style="margin-bottom:8px;">Select which genders this category/subcategory applies to. If none are selected, it applies to all genders.</div>
+                <div id="applicableGendersContainer" style="display:flex; flex-wrap:wrap; gap:12px; padding:10px; border:1px solid #eee; border-radius:6px; background:#fafafa;">
+                  <!-- Dynamically populated checkboxes -->
+                </div>
+              </div>
+              <div class="form-group" style="margin-top:16px;">
+                <label>Custom Gender Thumbnails</label>
+                <div class="help-text" style="margin-bottom:8px;">Upload specific category thumbnails to display when a user is filtering by a particular gender.</div>
+                <div id="genderImagesContainer" style="display:flex; flex-direction:column; gap:12px;">
+                  <!-- Dynamically populated file inputs and previews -->
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">Default/Main Image</div>
               <div class="form-group">
                 <label>Upload & Crop Image</label>
-                <input type="file" id="categoryImageFile" accept="image/*" style="padding:8px; border:2px dashed #ddd; border-radius:4px; background:#f8f9fa; cursor:pointer;" />
+                <input type="file" id="categoryImageFile" accept="image/*,.heic,.heif" style="padding:8px; border:2px dashed #ddd; border-radius:4px; background:#f8f9fa; cursor:pointer;" />
                 <div id="categoryCropper" class="cropper-wrapper" style="display:none; margin-top:16px;">
                   <div class="cropper-header">
                     <span>Adjust crop (square)</span>

@@ -282,6 +282,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  let availableGenders = [];
+  let categoryGenderImages = {};
+
+  async function fetchAvailableGenders() {
+    if (availableGenders.length > 0) return availableGenders;
+    const token = requireAuth();
+    try {
+      const res = await fetch(`${API_BASE}/admin/genders`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        availableGenders = data.data || data || [];
+      }
+    } catch (err) {
+      console.error('Failed to fetch genders:', err);
+    }
+    return availableGenders;
+  }
+
   function openCategoryModal(category, isSubcategory = false) {
     const modal = document.getElementById('categoryModal');
     if (!modal) return;
@@ -340,6 +360,131 @@ document.addEventListener('DOMContentLoaded', () => {
     
     categoryImageUrl = category ? (category.image_url || '') : '';
     updateCategoryImagePreview();
+
+    // Parse existing custom images and applicable genders safely
+    categoryGenderImages = category ? (typeof category.gender_images === 'string' ? JSON.parse(category.gender_images || '{}') : (category.gender_images || {})) : {};
+    const applicableGenders = category ? (typeof category.applicable_genders === 'string' ? JSON.parse(category.applicable_genders || '[]') : (category.applicable_genders || [])) : [];
+
+    // Render applicable genders checkboxes and custom thumbnail uploaders
+    fetchAvailableGenders().then(genders => {
+      const cbContainer = document.getElementById('applicableGendersContainer');
+      const imgContainer = document.getElementById('genderImagesContainer');
+      if (cbContainer) {
+        cbContainer.innerHTML = '';
+        genders.forEach(g => {
+          const label = document.createElement('label');
+          label.style.display = 'flex';
+          label.style.alignItems = 'center';
+          label.style.gap = '6px';
+          label.style.cursor = 'pointer';
+          label.style.fontSize = '13px';
+          
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.value = g.slug;
+          cb.checked = applicableGenders.includes(g.slug);
+          
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(g.name));
+          cbContainer.appendChild(label);
+        });
+        if (genders.length === 0) {
+          cbContainer.innerHTML = '<span style="color:#888; font-size:12px;">No genders found. Create genders in the Genders section first.</span>';
+        }
+      }
+
+      if (imgContainer) {
+        imgContainer.innerHTML = '';
+        genders.forEach(g => {
+          const row = document.createElement('div');
+          row.style.display = 'flex';
+          row.style.alignItems = 'center';
+          row.style.justifyContent = 'space-between';
+          row.style.gap = '10px';
+          row.style.padding = '8px';
+          row.style.background = '#fff';
+          row.style.border = '1px solid #e9ecef';
+          row.style.borderRadius = '4px';
+
+          const leftDiv = document.createElement('div');
+          leftDiv.style.fontSize = '13px';
+          leftDiv.style.fontWeight = 'bold';
+          leftDiv.textContent = `${g.name} Thumbnail:`;
+
+          const rightDiv = document.createElement('div');
+          rightDiv.style.display = 'flex';
+          rightDiv.style.alignItems = 'center';
+          rightDiv.style.gap = '8px';
+
+          const previewSpan = document.createElement('span');
+          previewSpan.style.fontSize = '12px';
+          previewSpan.style.color = '#6c757d';
+          
+          const updatePreview = () => {
+            const currentUrl = categoryGenderImages[g.slug];
+            if (currentUrl) {
+              const isHeicUrl = currentUrl.toLowerCase().includes('.heic') || currentUrl.toLowerCase().includes('.heif');
+              const previewContent = isHeicUrl 
+                ? `<span style="display:inline-block; padding:2px 6px; background:#e0f2fe; color:#0369a1; border-radius:4px; font-size:10px; font-weight:bold; vertical-align:middle; border:1px solid #bae6fd;" title="${currentUrl}">HEIC Image</span>` 
+                : `<img src="${currentUrl}" style="height:28px; width:28px; object-fit:contain; border-radius:3px; vertical-align:middle; border:1px solid #ddd;" />`;
+              previewSpan.innerHTML = `${previewContent} <button type="button" style="background:none; border:none; color:#dc3545; cursor:pointer; font-weight:bold; padding:0 4px;" title="Remove">×</button>`;
+              previewSpan.querySelector('button').onclick = () => {
+                delete categoryGenderImages[g.slug];
+                updatePreview();
+              };
+            } else {
+              previewSpan.textContent = 'None uploaded';
+            }
+          };
+          updatePreview();
+
+          const fileInput = document.createElement('input');
+          fileInput.type = 'file';
+          fileInput.accept = 'image/*,.heic,.heif';
+          fileInput.style.display = 'none';
+          fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const originalExt = file.name && file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase() : '.jpg';
+            const targetExt = (originalExt === '.heic' || originalExt === '.heif') ? originalExt : '.jpg';
+            const formData = new FormData();
+            formData.append('image', file, `gender_${g.slug}${targetExt}`);
+            const token = requireAuth();
+            try {
+              previewSpan.textContent = 'Uploading...';
+              const res = await fetch(`${UPLOAD_BASE}/category-image`, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token },
+                body: formData
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.message || 'Upload failed');
+              categoryGenderImages[g.slug] = data.data.url;
+              updatePreview();
+            } catch (err) {
+              previewSpan.textContent = 'Upload Failed';
+              if (window.showToast) window.showToast('error', err.message || 'Failed to upload image');
+            } finally {
+              fileInput.value = '';
+            }
+          };
+
+          const uploadBtn = document.createElement('button');
+          uploadBtn.type = 'button';
+          uploadBtn.className = 'btn btn-secondary btn-sm';
+          uploadBtn.textContent = 'Upload';
+          uploadBtn.onclick = () => fileInput.click();
+
+          rightDiv.appendChild(previewSpan);
+          rightDiv.appendChild(uploadBtn);
+          rightDiv.appendChild(fileInput);
+
+          row.appendChild(leftDiv);
+          row.appendChild(rightDiv);
+          imgContainer.appendChild(row);
+        });
+      }
+    });
     
     document.getElementById('categoryFormError').textContent = '';
   }
@@ -374,7 +519,22 @@ document.addEventListener('DOMContentLoaded', () => {
       parentId = '';
     }
 
-    const payload = { name, description, status };
+    const cbContainer = document.getElementById('applicableGendersContainer');
+    const applicable_genders = [];
+    if (cbContainer) {
+      cbContainer.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+        applicable_genders.push(cb.value);
+      });
+    }
+
+    const payload = { 
+      name, 
+      description, 
+      status, 
+      applicable_genders, 
+      gender_images: categoryGenderImages 
+    };
+    
     if (slug) payload.slug = slug;
     if (categoryImageUrl) payload.image_url = categoryImageUrl;
     if (parentId) {
@@ -444,9 +604,35 @@ document.addEventListener('DOMContentLoaded', () => {
   // Cropper logic
   let categoryCropState = null;
 
-  document.getElementById('categoryImageFile')?.addEventListener('change', function(e) {
+  document.getElementById('categoryImageFile')?.addEventListener('change', async function(e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    const ext = file.name ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase() : '';
+    if (ext === '.heic' || ext === '.heif') {
+      const token = requireAuth();
+      try {
+        if (window.showToast) window.showToast('info', 'Uploading HEIC image directly...');
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await fetch(`${UPLOAD_BASE}/category-image`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Upload failed');
+        categoryImageUrl = data.data && data.data.url ? data.data.url : data.url;
+        updateCategoryImagePreview();
+        if (window.showToast) window.showToast('success', 'Image added');
+      } catch (err) {
+        if (window.showToast) window.showToast('error', err.message || 'Failed to upload HEIC image');
+      } finally {
+        e.target.value = '';
+      }
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = function(event) {
       const img = new Image();

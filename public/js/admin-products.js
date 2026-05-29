@@ -1115,9 +1115,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (fileInput && cropperEl) {
-    fileInput.addEventListener('change', (e) => {
+    fileInput.addEventListener('change', async (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
+
+      const ext = file.name ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase() : '';
+      if (ext === '.heic' || ext === '.heif') {
+        const token = requireAuth();
+        try {
+          if (window.showToast) window.showToast('info', 'Uploading HEIC image directly...');
+          const formData = new FormData();
+          formData.append('image', file);
+          const res = await fetch(`${UPLOAD_BASE}/product-image`, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: formData
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Failed to upload image');
+          const url = data.data && data.data.url ? data.data.url : data.url;
+          if (url) {
+            if (productImages.length >= 5) {
+              if (window.showToast) window.showToast('error', 'Maximum 5 images allowed');
+            } else {
+              productImages.push(url);
+              updateImagesPreview();
+              if (window.showToast) window.showToast('success', 'Image added');
+            }
+          }
+        } catch (err) {
+          if (window.showToast) window.showToast('error', err.message || 'Failed to upload HEIC image');
+        } finally {
+          fileInput.value = '';
+        }
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (ev) => {
         const img = new Image();

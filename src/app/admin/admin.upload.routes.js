@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const heicConvert = require('heic-convert');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { sendSuccess, sendError } = require('../../utils/response');
 const logger = require('../../utils/logger');
@@ -11,7 +12,94 @@ const router = express.Router();
 // Protect all upload routes
 router.use(authenticate);
 
+const isImage = (file) => {
+  if (!file) return false;
+  const ext = file.name ? path.extname(file.name).toLowerCase() : '';
+  const mime = file.mimetype ? file.mimetype.toLowerCase() : '';
+
+  if (mime.startsWith('image/') || mime.includes('heic') || mime.includes('heif')) {
+    return true;
+  }
+  if (ext === '.heic' || ext === '.heif' || ext === '.jpg' || ext === '.jpeg' || ext === '.png' || ext === '.webp' || ext === '.gif') {
+    return true;
+  }
+
+  // Robust buffer inspection for HEIC containers or standard files sent without metadata
+  if (file.data && Buffer.isBuffer(file.data) && file.data.length >= 12) {
+    const ftyp = file.data.toString('ascii', 4, 8);
+    if (ftyp === 'ftyp') {
+      return true; // Valid media container (HEIC/HEIF/MP4)
+    }
+    // JPEG magic numbers
+    if (file.data[0] === 0xFF && file.data[1] === 0xD8) {
+      return true;
+    }
+    // PNG magic numbers
+    if (file.data[0] === 0x89 && file.data[1] === 0x50 && file.data[2] === 0x4E && file.data[3] === 0x47) {
+      return true;
+    }
+    // WebP magic numbers
+    if (file.data.toString('ascii', 0, 4) === 'RIFF' && file.data.toString('ascii', 8, 12) === 'WEBP') {
+      return true;
+    }
+  }
+
+  // Safe fallback for generic binary uploads from client side
+  if (mime === 'application/octet-stream' || mime === '') {
+    return true;
+  }
+
+  return false;
+};
+
 const saveUploadedImage = async (file, folder) => {
+  let ext = file.name ? path.extname(file.name).toLowerCase() : '';
+  let isHeic = ext === '.heic' || ext === '.heif';
+  const mime = file.mimetype ? file.mimetype.toLowerCase() : '';
+
+  if (!isHeic && (mime.includes('heic') || mime.includes('heif'))) {
+    isHeic = true;
+  }
+
+  // Detect via buffer magic numbers if missing explicit metadata
+  if (!isHeic && file.data && Buffer.isBuffer(file.data) && file.data.length >= 12) {
+    if (file.data.toString('ascii', 4, 8) === 'ftyp') {
+      const brand = file.data.toString('ascii', 8, 12).trim();
+      if (['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'].includes(brand)) {
+        isHeic = true;
+      }
+    }
+  }
+
+  if (isHeic && file.data && Buffer.isBuffer(file.data)) {
+    try {
+      logger.info('Converting HEIC image buffer to JPEG...');
+      const outputBuffer = await heicConvert({
+        buffer: file.data,
+        format: 'JPEG',
+        quality: 0.85
+      });
+      file.data = outputBuffer;
+      file.mimetype = 'image/jpeg';
+      const baseName = file.name ? path.basename(file.name, path.extname(file.name)) : 'image';
+      file.name = baseName + '.jpg';
+    } catch (conversionErr) {
+      logger.error('Failed to convert HEIC to JPEG, falling back to original blob:', conversionErr);
+      file.mimetype = ext === '.heif' ? 'image/heif' : 'image/heic';
+      if (!ext) {
+        file.name = (file.name || 'image') + '.heic';
+      }
+    }
+  } else if ((!file.mimetype || file.mimetype === 'application/octet-stream') && file.data && Buffer.isBuffer(file.data) && file.data.length >= 2) {
+    if (file.data[0] === 0xFF && file.data[1] === 0xD8) {
+      file.mimetype = 'image/jpeg';
+      if (!ext) file.name = (file.name || 'image') + '.jpg';
+    } else if (file.data[0] === 0x89 && file.data[1] === 0x50) {
+      file.mimetype = 'image/png';
+      if (!ext) file.name = (file.name || 'image') + '.png';
+    }
+  }
+
   // Use S3 service instead of local file system
   const urlPath = await uploadToS3(file, folder);
   return urlPath;
@@ -24,7 +112,7 @@ router.post('/product-image', async (req, res) => {
     }
 
     const file = req.files.image;
-    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    if (!isImage(file)) {
       return sendError(res, 400, 'Only image uploads are allowed');
     }
 
@@ -43,7 +131,7 @@ router.post('/category-image', async (req, res) => {
     }
 
     const file = req.files.image;
-    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    if (!isImage(file)) {
       return sendError(res, 400, 'Only image uploads are allowed');
     }
 
@@ -62,7 +150,7 @@ router.post('/occasion-image', async (req, res) => {
     }
 
     const file = req.files.image;
-    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    if (!isImage(file)) {
       return sendError(res, 400, 'Only image uploads are allowed');
     }
 
@@ -81,7 +169,7 @@ router.post('/collection-image', async (req, res) => {
     }
 
     const file = req.files.image;
-    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    if (!isImage(file)) {
       return sendError(res, 400, 'Only image uploads are allowed');
     }
 
@@ -101,7 +189,7 @@ router.post('/review-image', async (req, res) => {
     }
 
     const file = req.files.image;
-    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    if (!isImage(file)) {
       return sendError(res, 400, 'Only image uploads are allowed');
     }
 
@@ -123,9 +211,11 @@ router.post('/review-media', async (req, res) => {
     const file = req.files.media;
     let type = 'image';
     
-    if (file.mimetype.startsWith('video/')) {
+    if (file.mimetype && file.mimetype.startsWith('video/')) {
       type = 'video';
-    } else if (!file.mimetype.startsWith('image/')) {
+    } else if (isImage(file)) {
+      type = 'image';
+    } else {
       return sendError(res, 400, 'Only image and video uploads are allowed');
     }
 
@@ -203,7 +293,7 @@ router.post('/banner-image', async (req, res) => {
     }
 
     const file = req.files.image;
-    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    if (!isImage(file)) {
       return sendError(res, 400, 'Only image uploads are allowed');
     }
 
@@ -222,7 +312,7 @@ router.post('/testimonial-image', async (req, res) => {
     }
 
     const file = req.files.image;
-    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+    if (!isImage(file)) {
       return sendError(res, 400, 'Only image uploads are allowed');
     }
 
@@ -231,6 +321,26 @@ router.post('/testimonial-image', async (req, res) => {
   } catch (error) {
     logger.error('Testimonial image upload error:', error);
     return sendError(res, 500, 'Failed to upload testimonial image');
+  }
+});
+
+// Generic media upload endpoint (supports file or image field name)
+router.post('/', async (req, res) => {
+  try {
+    if (!req.files || (!req.files.file && !req.files.image)) {
+      return sendError(res, 400, 'Media file is required');
+    }
+
+    const file = req.files.file || req.files.image;
+    if (!isImage(file)) {
+      return sendError(res, 400, 'Only image uploads are allowed');
+    }
+
+    const url = await saveUploadedImage(file, 'general');
+    return sendSuccess(res, 200, 'Media uploaded successfully', { url });
+  } catch (error) {
+    logger.error('Media upload error:', error);
+    return sendError(res, 500, 'Failed to upload media');
   }
 });
 
