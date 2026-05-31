@@ -3,6 +3,7 @@ const { sendError } = require('../utils/response');
 const messages = require('../constants/messages');
 const appConfig = require('../config/app');
 const logger = require('../utils/logger');
+const UserModel = require('../app/users/user.model');
 
 /** Error code for 401 when token has no user id (e.g. temp registration token) */
 const SESSION_REQUIRED_CODE = 'SESSION_REQUIRED';
@@ -10,7 +11,7 @@ const SESSION_REQUIRED_CODE = 'SESSION_REQUIRED';
 /**
  * Verify JWT token
  */
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -35,6 +36,23 @@ const authenticate = (req, res, next) => {
         });
       }
       req.user = decoded;
+
+      // Session invalidation: if password was changed after this token was issued, reject it
+      if (decoded.pwdAt != null) {
+        try {
+          const user = await UserModel.findById(decoded.id);
+          if (user && user.password_changed_at) {
+            const pwdChangedMs = new Date(user.password_changed_at).getTime();
+            if (decoded.pwdAt < pwdChangedMs) {
+              return sendError(res, 401, 'Session expired. Please log in again.');
+            }
+          }
+        } catch (lookupErr) {
+          logger.error('Session validation lookup error:', lookupErr);
+          // Non-fatal: allow request to proceed
+        }
+      }
+
       next();
     } catch (error) {
       if (error.name === 'TokenExpiredError') {

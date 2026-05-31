@@ -5,42 +5,97 @@
   <title><%= title || 'Admin Login' %></title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%); margin:0; display:flex; justify-content:center; align-items:center; height:100vh; }
-    .card { background:#fff; padding:32px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1); width:360px; border:1px solid #e9ecef; }
-    h1 { margin:0 0 6px; font-size:22px; color:#495057; font-weight:600; }
-    p.subtitle { margin:0 0 24px; font-size:13px; color:#6c757d; }
-    .field { margin-bottom:16px; }
-    .field label { display:block; margin-bottom:6px; font-size:13px; color:#495057; font-weight:500; }
-    .field input { width:100%; padding:12px; box-sizing:border-box; font-size:14px; border:1px solid #ced4da; border-radius:6px; transition:border-color 0.2s; }
-    .field input:focus { outline:none; border-color:#6c757d; box-shadow:0 0 0 3px rgba(108,117,125,0.1); }
-    button { width:100%; padding:12px; background:linear-gradient(135deg, #6c757d 0%, #5a6268 100%); color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:500; transition:all 0.2s; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
-    button:hover:not(:disabled) { background:linear-gradient(135deg, #5a6268 0%, #495057 100%); box-shadow:0 3px 6px rgba(0,0,0,0.15); transform:translateY(-1px); }
-    button:disabled { opacity:.7; cursor:not-allowed; }
-    .error { color:#dc3545; margin-top:8px; font-size:13px; min-height:16px; }
-    .brand { font-weight:600; margin-bottom:4px; color:#495057; font-size:18px; letter-spacing:0.05em; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #f0f2f5 0%, #e4e8ef 100%);
+      margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+    }
+    .card {
+      background: #fff; padding: 40px 36px; border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.10); width: 380px;
+      border: 1px solid #e4e8ef;
+    }
+    .brand { font-weight: 700; font-size: 18px; color: #1a202c; letter-spacing: 0.04em; margin-bottom: 4px; }
+    h1 { margin: 0 0 4px; font-size: 22px; color: #1a202c; font-weight: 700; }
+    p.subtitle { margin: 0 0 28px; font-size: 13px; color: #6b7280; }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; margin-bottom: 6px; font-size: 13px; color: #374151; font-weight: 500; }
+    .field input {
+      width: 100%; padding: 11px 14px; font-size: 14px;
+      border: 1.5px solid #d1d5db; border-radius: 8px; transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none; color: #1a202c;
+    }
+    .field input:focus { border-color: #1a202c; box-shadow: 0 0 0 3px rgba(26,32,44,0.08); }
+    .field input.otp-input {
+      font-size: 28px; font-weight: 700; letter-spacing: 10px; text-align: center;
+      font-family: monospace; padding: 16px;
+    }
+    button.primary {
+      width: 100%; padding: 12px; background: #1a202c; color: #fff;
+      border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;
+      transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      letter-spacing: 0.01em;
+    }
+    button.primary:hover:not(:disabled) { background: #2d3748; box-shadow: 0 4px 12px rgba(0,0,0,0.18); transform: translateY(-1px); }
+    button.primary:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+    button.link-btn { background: none; border: none; padding: 0; cursor: pointer; font-size: 13px; color: #4b5563; text-decoration: underline; }
+    button.link-btn:hover { color: #1a202c; }
+    .error { color: #dc2626; margin-top: 10px; font-size: 13px; min-height: 18px; line-height: 1.4; }
+    .info { color: #2563eb; margin-bottom: 16px; font-size: 13px; line-height: 1.5; background: #eff6ff; border-radius: 7px; padding: 10px 14px; }
+    .footer-link { margin-top: 18px; text-align: center; font-size: 13px; color: #6b7280; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .back-btn { display: flex; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; font-size: 13px; color: #6b7280; padding: 0; margin-bottom: 20px; }
+    .back-btn:hover { color: #1a202c; }
+    .badge { display: inline-block; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 20px; font-size: 12px; padding: 3px 10px; font-weight: 600; margin-bottom: 16px; }
+    .timer { font-size: 12px; color: #9ca3af; text-align: center; margin-top: 12px; }
+    .attempts-warning { font-size: 12px; color: #f59e0b; margin-top: 8px; }
   </style>
 </head>
 <body data-api-base="<%= apiBaseUrl %>">
   <div class="card">
     <div class="brand">Jashoda Admin</div>
-    <h1>Sign in</h1>
-    <p class="subtitle">Use your admin credentials to continue.</p>
-    <form id="loginForm">
-      <div class="field">
-        <label for="email">Email</label>
-        <input id="email" type="email" value="admin@jashoda.com" required />
+
+    <!-- Step 1: Email + Password -->
+    <div class="step active" id="step-login">
+      <h1>Sign in</h1>
+      <p class="subtitle">Use your admin credentials to continue.</p>
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" autocomplete="email" required placeholder="yashj17033@gmail.com" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" required placeholder="••••••••" />
+        </div>
+        <button type="submit" class="primary" id="loginBtn">Sign in</button>
+        <div id="loginError" class="error"></div>
+      </form>
+      <div class="footer-link">
+        <button class="link-btn" id="forgotLink">Forgot password?</button>
       </div>
-      <div class="field">
-        <label for="password">Password</label>
-        <input id="password" type="password" value="Admin@123" required />
-      </div>
-      <button type="submit" id="submitBtn">Login</button>
-      <div id="error" class="error"></div>
-    </form>
+    </div>
+
+    <!-- Step 2: 2FA OTP -->
+    <div class="step" id="step-2fa">
+      <button class="back-btn" id="backToLogin">&#8592; Back</button>
+      <span class="badge">🔐 Two-Factor Authentication</span>
+      <h1>Verify identity</h1>
+      <p class="subtitle" id="otpSubtitle">Enter the 6-digit code sent to your email.</p>
+      <form id="twoFaForm">
+        <div class="field">
+          <label for="otpInput">Verification Code</label>
+          <input id="otpInput" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" class="otp-input" required placeholder="000000" autocomplete="one-time-code" />
+        </div>
+        <button type="submit" class="primary" id="verifyBtn">Verify & Sign in</button>
+        <div id="twoFaError" class="error"></div>
+        <div class="timer" id="otpTimer"></div>
+      </form>
+    </div>
   </div>
 
   <script src="/static/js/admin-login.js"></script>
 </body>
 </html>
-
-

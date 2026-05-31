@@ -43,13 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const cardList = document.getElementById('productsCardList');
     const emptyState = document.getElementById('productsEmptyState');
     if (!tbody) return;
-    
+
     // Hide loader, show containers
     const container = document.getElementById('productsContainer');
     if (loader) loader.classList.remove('active');
     if (container) container.style.display = 'block';
     if (table) table.style.display = 'table';
-    
+
     const products = result.data || result.products || result;
     tbody.innerHTML = '';
     if (cardList) cardList.innerHTML = '';
@@ -81,15 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${p.name}</td>
         <td>${categoryLabel || ''}</td>
         <td>₹${parseFloat(p.price).toLocaleString('en-IN')}</td>
-        <td><span class="badge ${
-          p.stock_status === 'in_stock'
-            ? 'badge-stock-ok'
-            : p.stock_status === 'low_stock'
+        <td><span class="badge ${p.stock_status === 'in_stock'
+          ? 'badge-stock-ok'
+          : p.stock_status === 'low_stock'
             ? 'badge-stock-low'
             : 'badge-stock-out'
         }">${p.stock_quantity || 0}</span></td>
-        <td><span class="badge ${
-          p.status === 'active' ? 'badge-status-active' : 'badge-status-inactive'
+        <td><span class="badge ${p.status === 'active' ? 'badge-status-active' : 'badge-status-inactive'
         }">${p.status}</span></td>
         <td>
           <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${p.id}">Edit</button>
@@ -135,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cardList.appendChild(card);
       }
     });
-    
+
     // Store pagination info
     paginationInfo = result.pagination || result.meta?.pagination || null;
     renderPagination();
@@ -144,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderPagination() {
     const container = document.getElementById('productsPagination');
     if (!container || !paginationInfo) return;
-    
+
     const { page, totalPages, total } = paginationInfo;
     if (totalPages <= 1) {
       container.innerHTML = '';
@@ -152,10 +150,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let html = '';
-    
+
     // Previous button
     html += `<button ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}">Previous</button>`;
-    
+
     // Page numbers
     const maxPages = 7;
     let startPage = Math.max(1, page - Math.floor(maxPages / 2));
@@ -163,29 +161,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (endPage - startPage < maxPages - 1) {
       startPage = Math.max(1, endPage - maxPages + 1);
     }
-    
+
     if (startPage > 1) {
       html += `<button data-page="1">1</button>`;
       if (startPage > 2) html += `<span class="page-info">...</span>`;
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       html += `<button class="${i === page ? 'page-current' : ''}" data-page="${i}">${i}</button>`;
     }
-    
+
     if (endPage < totalPages) {
       if (endPage < totalPages - 1) html += `<span class="page-info">...</span>`;
       html += `<button data-page="${totalPages}">${totalPages}</button>`;
     }
-    
+
     // Next button
     html += `<button ${page >= totalPages ? 'disabled' : ''} data-page="${page + 1}">Next</button>`;
-    
+
     // Page info
     html += `<span class="page-info">Page ${page} of ${totalPages} (${total} total)</span>`;
-    
+
     container.innerHTML = html;
-    
+
     // Add click handlers
     container.querySelectorAll('button[data-page]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -254,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function calculateTotalStock() {
     const qtyInputs = document.querySelectorAll('.variant-qty-input');
     if (qtyInputs.length === 0) return;
-    
+
     let total = 0;
     qtyInputs.forEach(input => {
       total += parseInt(input.value) || 0;
@@ -288,12 +286,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const table = document.getElementById('productsTable');
       const container = document.getElementById('productsContainer');
       const loader = document.getElementById('productsTableLoader');
-      
+
       // Show loader, hide table
       if (loader) loader.classList.add('active');
       if (container) container.style.display = 'none';
       if (table) table.style.display = 'none';
-      
+
       const searchInput = document.getElementById('search');
       const search = searchInput ? searchInput.value.trim() : '';
       // Reset to page 1 when searching
@@ -408,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const categories = await loadParentCategories();
       const select = document.getElementById('productCategory');
       if (!select) return;
-      
+
       select.innerHTML = '<option value="">Select Category</option>';
       categories.forEach(cat => {
         const option = document.createElement('option');
@@ -458,16 +456,16 @@ document.addEventListener('DOMContentLoaded', () => {
   async function populateSubcategoryDropdown(parentId, selectedSubcategoryId = null) {
     const select = document.getElementById('productSubcategory');
     if (!select) return;
-    
+
     select.innerHTML = '<option value="">Select Subcategory</option>';
-    
+
     if (!parentId) {
       select.disabled = true;
       return;
     }
-    
+
     select.disabled = false;
-    
+
     try {
       const subcategories = await loadSubcategories(parentId);
       subcategories.forEach(sub => {
@@ -535,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('productId').value = product ? product.id : '';
     document.getElementById('productName').value = product ? product.name : '';
     document.getElementById('productSku').value = product ? (product.sku || '') : generateDefaultSKU();
-    
+
     // Load categories, occasions and genders first, then set selected values
     await populateCategoryDropdown();
     const occasionIds = product && product.occasions ? product.occasions.map(o => o.id) : (product && product.occasion_id ? [product.occasion_id] : []);
@@ -624,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('productShippingClass').value = product ? (product.shipping_class || '') : '';
     document.getElementById('productReturnable').value = product ? (String(product.returnable) || 'true') : 'true';
     document.getElementById('productWarranty').value = product ? (product.warranty || '') : '';
-    
+
     // Set images array from product data
     productImages = product && product.images ? product.images.map(i => i.url || i) : [];
     updateImagesPreview();
@@ -644,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     videoStatus.textContent = '';
     document.getElementById('productVideoFile').value = '';
-    
+
     // Variants logic
     await fetchRingSizes();
     const variantsContainer = document.getElementById('variantsContainer');
@@ -654,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
         product.variants.forEach(v => createVariantRow(v));
       }
     }
-    
+
     clearProductFormValidation();
     document.getElementById('productFormError').textContent = '';
   }
@@ -680,10 +678,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!category) errors.push({ id: 'productCategory', message: 'Category is required' });
     const subcategory = document.getElementById('productSubcategory')?.value?.trim();
     if (!subcategory) errors.push({ id: 'productSubcategory', message: 'Subcategory is required' });
-    
+
     const selectedOccasions = Array.from(document.querySelectorAll('input[name="productOccasions"]:checked')).map(el => el.value);
     if (selectedOccasions.length === 0) errors.push({ id: 'productOccasionsList', message: 'At least one occasion is required' });
-    
+
     if (!status) errors.push({ id: 'productStatus', message: 'Status is required' });
     const price = priceVal !== '' && priceVal !== undefined ? parseFloat(priceVal) : NaN;
     if (isNaN(price) || price < 0) errors.push({ id: 'productPrice', message: 'Base price is required and must be 0 or greater' });
@@ -726,7 +724,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const id = document.getElementById('productId').value;
-    
+
     // Basic Info
     const name = document.getElementById('productName').value.trim();
     const sku = document.getElementById('productSku').value.trim();
@@ -823,7 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const select = row.querySelector('.variant-size-select');
         const qtyInput = row.querySelector('.variant-qty-input');
         const selectedOption = select.options[select.selectedIndex];
-        
+
         if (selectedOption && selectedOption.value) {
           variants.push({
             size_id: parseInt(selectedOption.value),
@@ -924,7 +922,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Category change handler
-  document.getElementById('productCategory')?.addEventListener('change', async function(e) {
+  document.getElementById('productCategory')?.addEventListener('change', async function (e) {
     const categoryId = e.target.value;
     await populateSubcategoryDropdown(categoryId);
   });
@@ -1253,7 +1251,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Video Upload
-  document.getElementById('productVideoFile')?.addEventListener('change', async function(e) {
+  document.getElementById('productVideoFile')?.addEventListener('change', async function (e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -1275,7 +1273,7 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.append('video', file);
 
       const token = requireAuth();
-      const res = await fetch(`${UPLOAD_BASE}/promo-video`, { 
+      const res = await fetch(`${UPLOAD_BASE}/promo-video`, {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer ' + token

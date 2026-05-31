@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const heicConvert = require('heic-convert');
+const sharp = require('sharp');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { sendSuccess, sendError } = require('../../utils/response');
 const logger = require('../../utils/logger');
@@ -97,6 +98,54 @@ const saveUploadedImage = async (file, folder) => {
     } else if (file.data[0] === 0x89 && file.data[1] === 0x50) {
       file.mimetype = 'image/png';
       if (!ext) file.name = (file.name || 'image') + '.png';
+    }
+  }
+
+  // Optimize standard images with sharp before uploading to S3
+  if (file.mimetype && file.mimetype.startsWith('image/')) {
+    try {
+      logger.info(`Optimizing image with sharp: ${file.name} (${file.mimetype})`);
+      const originalSize = file.data.length;
+
+      let sharpInstance = sharp(file.data).rotate();
+
+      // Get metadata to inspect width
+      const metadata = await sharpInstance.metadata();
+      
+      // Limit resolution to maximum width 3000px (retaining details for zoom)
+      if (metadata.width && metadata.width > 3000) {
+        sharpInstance = sharpInstance.resize({ width: 3000, withoutEnlargement: true });
+      }
+
+      // Convert all images to WebP format for optimal quality/compression (except GIFs to preserve animation)
+      const currentMime = file.mimetype.toLowerCase();
+      let convertedToWebP = false;
+
+      if (currentMime === 'image/gif') {
+        // Leave GIF format, but optimize if needed
+      } else {
+        sharpInstance = sharpInstance.webp({ quality: 85 });
+        convertedToWebP = true;
+      }
+
+      const optimizedBuffer = await sharpInstance.toBuffer();
+
+      if (convertedToWebP) {
+        file.data = optimizedBuffer;
+        file.mimetype = 'image/webp';
+        const baseName = file.name ? path.basename(file.name, path.extname(file.name)) : 'image';
+        file.name = baseName + '.webp';
+        logger.info(`Optimized & converted ${file.name} to WebP: ${(originalSize / 1024).toFixed(1)}KB -> ${(optimizedBuffer.length / 1024).toFixed(1)}KB`);
+      } else {
+        if (optimizedBuffer.length < originalSize) {
+          file.data = optimizedBuffer;
+          logger.info(`Optimized GIF ${file.name}: ${(originalSize / 1024).toFixed(1)}KB -> ${(optimizedBuffer.length / 1024).toFixed(1)}KB`);
+        } else {
+          logger.info(`Optimized GIF was not smaller than original. Uploading original.`);
+        }
+      }
+    } catch (err) {
+      logger.error('Sharp optimization failed, uploading original:', err);
     }
   }
 

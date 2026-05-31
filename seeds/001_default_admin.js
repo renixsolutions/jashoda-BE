@@ -16,13 +16,14 @@ exports.seed = async function(knex) {
   // Insert default admin user
   await knex('users').insert([
     {
-      name: 'Admin User',
-      email: 'admin@jashoda.com',
-      username: 'admin',
-      first_name: 'Admin',
-      last_name: 'User',
+      name: 'Yash Jain',
+      email: 'jainyash9098@gmail.com',
+      username: 'yash_admin',
+      first_name: 'Yash',
+      last_name: 'Jain',
       password: hashedPassword,
       status: 'active',
+      role: 'SUPER_ADMIN',
       address: 'Jashoda Jewellers Headquarters',
       country: 'India',
       city: 'Mumbai',

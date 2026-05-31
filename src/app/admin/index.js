@@ -13,6 +13,22 @@ router.get('/login', (req, res) => {
   });
 });
 
+// Forgot password page
+router.get('/forgot-password', (req, res) => {
+  res.render('admin/forgot-password', {
+    title: 'Forgot Password | ' + appConfig.appName,
+    apiBaseUrl: '/api/v1'
+  });
+});
+
+// Reset password page
+router.get('/reset-password', (req, res) => {
+  res.render('admin/reset-password', {
+    title: 'Reset Password | ' + appConfig.appName,
+    apiBaseUrl: '/api/v1'
+  });
+});
+
 // Dashboard page (client JS will check token and fetch data)
 router.get('/', (req, res) => {
   res.render('admin/dashboard', {

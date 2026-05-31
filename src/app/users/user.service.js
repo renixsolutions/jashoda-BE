@@ -5,6 +5,7 @@ const appConfig = require('../../config/app');
 const logger = require('../../utils/logger');
 const messages = require('../../constants/messages');
 const { generateToken } = require('../../utils/jwt');
+const { ADMIN_ROLES } = require('../admin/admin.auth.service');
 
 class UserService {
   /**
@@ -180,11 +181,20 @@ class UserService {
         throw new Error('Account is not active');
       }
 
-      // Generate JWT token using utility function
+      // ── Admin/Staff: trigger 2FA instead of issuing token directly ──
+      if (ADMIN_ROLES.includes(user.role)) {
+        // Lazy-require to avoid circular dependency
+        const AdminAuthService = require('../admin/admin.auth.service');
+        return AdminAuthService.initiate2FA(user);
+      }
+
+      // ── Regular customer: issue token directly ──
       const token = generateToken({
         id: user.id,
         email: user.email,
-        username: user.username
+        username: user.username,
+        role: user.role || 'CUSTOMER',
+        pwdAt: user.password_changed_at ? new Date(user.password_changed_at).getTime() : null,
       });
 
       // Remove password from user object

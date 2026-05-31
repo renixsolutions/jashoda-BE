@@ -6,6 +6,7 @@ const { checkConnection } = require('./db/connection');
 const { errorHandler, notFoundHandler } = require('./middlewares/error.middleware');
 const logger = require('./utils/logger');
 const v1Routes = require('./routes/v1');
+const { globalLimiter, publicApiLimiter } = require('./middlewares/rate-limit.middleware');
 const path = require('path');
 const adminWebRoutes = require('./app/admin');
 const fileUpload = require('express-fileupload');
@@ -20,6 +21,9 @@ app.set('views', path.join(__dirname, '../views'));
 // Static assets (for admin panel CSS/JS, uploads, etc.)
 app.use('/static', express.static(path.join(__dirname, '../public')));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Global rate limiting (safety net — all routes)
+app.use(globalLimiter);
 
 // Security middleware
 app.use(helmet({
@@ -66,8 +70,8 @@ app.get('/health', async (req, res) => {
 // Admin web panel routes (EJS views)
 app.use('/admin', adminWebRoutes);
 
-// API routes
-app.use('/api/v1', v1Routes);
+// API routes (public API limiter applied before routing)
+app.use('/api/v1', publicApiLimiter, v1Routes);
 
 // Root endpoint
 app.get('/', (req, res) => {

@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const loader = document.getElementById('testimonialsTableLoader');
         const container = document.getElementById('testimonialsContainer');
         const emptyState = document.getElementById('testimonialsEmptyState');
-        
+
         if (loader) loader.classList.remove('active');
         if (container) container.style.display = 'block';
 
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (emptyState) emptyState.style.display = 'block';
             return;
         }
-        
+
         document.getElementById('testimonialsTable').style.display = 'table';
         if (emptyState) emptyState.style.display = 'none';
 
@@ -139,9 +139,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const reader = new FileReader();
-        reader.onload = function(event) {
+        reader.onload = function (event) {
             const img = new Image();
-            img.onload = function() {
+            img.onload = function () {
                 cropState = { img, scale: 1, x: 0, y: 0 };
                 document.getElementById('testimonialCropper').classList.add('active');
                 drawCrop();
@@ -287,9 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { Authorization: 'Bearer ' + token }
                 });
                 const result = await res.json();
-                
+
                 if (!res.ok) throw new Error(result.message || 'Failed to fetch testimonial');
-                
+
                 const t = result.data;
                 if (!t) throw new Error('Testimonial data not found');
 
@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('rotation').value = t.rotation || 0;
                 document.getElementById('image_url').value = t.image_url || '';
                 document.getElementById('is_active').checked = !!t.is_active;
-                
+
                 if (t.image_url) {
                     imagePreview.innerHTML = `<img src="${t.image_url}" style="width:100%; height:100%; object-fit:cover;">`;
                 } else {

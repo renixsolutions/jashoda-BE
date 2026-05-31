@@ -81,22 +81,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('categoriesContainer');
     const loader = document.getElementById('categoriesTableLoader');
     if (!tbody) return;
-    
+
     if (loader) loader.classList.remove('active');
     if (container) container.style.display = 'block';
-    
+
     tbody.innerHTML = '';
-    
+
     // Separate parent categories and subcategories
     const parentCategories = allCategories.filter(c => !c.parent_id);
-    
+
     parentCategories.forEach(category => {
       // Render parent category
       const tr = document.createElement('tr');
       tr.className = 'category-row';
       const hasSubcategories = allSubcategories[category.id] && allSubcategories[category.id].length > 0;
       const isExpanded = expandedCategories.has(category.id);
-      
+
       const subCount = (allSubcategories[category.id] && allSubcategories[category.id].length) || 0;
       tr.innerHTML = `
         <td>
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="btn btn-danger btn-sm" data-action="delete" data-id="${category.id}">Delete</button>
         </td>
       `;
-      
+
       // Add expand/collapse handler
       if (hasSubcategories) {
         tr.querySelector('.expand-icon').addEventListener('click', (e) => {
@@ -124,9 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
           toggleCategory(category.id);
         });
       }
-      
+
       tbody.appendChild(tr);
-      
+
       // Render subcategories if expanded
       if (isExpanded && allSubcategories[category.id]) {
         allSubcategories[category.id].forEach(subcategory => {
@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
     });
-    
+
     paginationInfo = { page: currentPage, totalPages: 1, total: parentCategories.length };
     renderPagination();
   }
@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (container) container.innerHTML = '';
       return;
     }
-    
+
     const { page, totalPages, total } = paginationInfo;
     if (totalPages <= 1) {
       container.innerHTML = '';
@@ -170,33 +170,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let html = '';
     html += `<button ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}">Previous</button>`;
-    
+
     const maxPages = 7;
     let startPage = Math.max(1, page - Math.floor(maxPages / 2));
     let endPage = Math.min(totalPages, startPage + maxPages - 1);
     if (endPage - startPage < maxPages - 1) {
       startPage = Math.max(1, endPage - maxPages + 1);
     }
-    
+
     if (startPage > 1) {
       html += `<button data-page="1">1</button>`;
       if (startPage > 2) html += `<span class="page-info">...</span>`;
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       html += `<button class="${i === page ? 'page-current' : ''}" data-page="${i}">${i}</button>`;
     }
-    
+
     if (endPage < totalPages) {
       if (endPage < totalPages - 1) html += `<span class="page-info">...</span>`;
       html += `<button data-page="${totalPages}">${totalPages}</button>`;
     }
-    
+
     html += `<button ${page >= totalPages ? 'disabled' : ''} data-page="${page + 1}">Next</button>`;
     html += `<span class="page-info">Page ${page} of ${totalPages} (${total} total)</span>`;
-    
+
     container.innerHTML = html;
-    
+
     container.querySelectorAll('button[data-page]').forEach(btn => {
       btn.addEventListener('click', () => {
         const newPage = parseInt(btn.getAttribute('data-page'));
@@ -214,10 +214,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const container = document.getElementById('categoriesContainer');
       if (loader) loader.classList.add('active');
       if (container) container.style.display = 'none';
-      
+
       const result = await fetchAllCategories(currentPage);
       allCategories = result.data || result.categories || result;
-      
+
       // Load subcategories for all parent categories
       const parentCategories = allCategories.filter(c => !c.parent_id);
       for (const category of parentCategories) {
@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
           await loadSubcategoriesForCategory(category.id);
         }
       }
-      
+
       renderCategories();
     } catch (err) {
       const loader = document.getElementById('categoriesTableLoader');
@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const categories = await fetchParentCategories();
       const select = document.getElementById('parentCategorySelect');
       if (!select) return;
-      
+
       select.innerHTML = '<option value="">Select Parent Category</option>';
       categories.forEach(cat => {
         const option = document.createElement('option');
@@ -307,14 +307,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!modal) return;
     modal.classList.add('active');
     const isEdit = !!category;
-    const title = isEdit 
+    const title = isEdit
       ? (isSubcategory ? 'Edit Subcategory' : 'Edit Category')
       : (isSubcategory ? 'New Subcategory' : 'New Category');
     document.getElementById('categoryModalTitle').textContent = title;
 
     const typeSelect = document.getElementById('categoryType');
     const parentGroup = document.getElementById('parentCategoryGroup');
-    
+
     if (isEdit) {
       typeSelect.value = category.parent_id ? 'subcategory' : 'category';
       typeSelect.disabled = true; // Can't change type when editing
@@ -322,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
       typeSelect.value = isSubcategory ? 'subcategory' : 'category';
       typeSelect.disabled = false;
     }
-    
+
     // Show/hide parent category select
     if (typeSelect.value === 'subcategory') {
       parentGroup.style.display = 'block';
@@ -330,9 +330,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       parentGroup.style.display = 'none';
     }
-    
+
     // Type change handler
-    typeSelect.onchange = function() {
+    typeSelect.onchange = function () {
       if (this.value === 'subcategory') {
         parentGroup.style.display = 'block';
         loadParentCategoriesForSelect();
@@ -347,17 +347,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('categorySlug').value = category ? (category.slug || '') : '';
     document.getElementById('categoryDescription').value = category ? (category.description || '') : '';
     document.getElementById('categoryStatus').value = category ? (category.status || 'active') : 'active';
-    
+
     // Set parent_id: for new subcategory use selected, for edit use existing parent_id
-    const parentIdValue = isSubcategory 
+    const parentIdValue = isSubcategory
       ? (category?.parent_id || '')
       : (category?.parent_id || '');
     document.getElementById('categoryParentId').value = parentIdValue;
-    
+
     if (parentIdValue && typeSelect.value === 'subcategory') {
       document.getElementById('parentCategorySelect').value = parentIdValue;
     }
-    
+
     categoryImageUrl = category ? (category.image_url || '') : '';
     updateCategoryImagePreview();
 
@@ -378,12 +378,12 @@ document.addEventListener('DOMContentLoaded', () => {
           label.style.gap = '6px';
           label.style.cursor = 'pointer';
           label.style.fontSize = '13px';
-          
+
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.value = g.slug;
           cb.checked = applicableGenders.includes(g.slug);
-          
+
           label.appendChild(cb);
           label.appendChild(document.createTextNode(g.name));
           cbContainer.appendChild(label);
@@ -419,13 +419,13 @@ document.addEventListener('DOMContentLoaded', () => {
           const previewSpan = document.createElement('span');
           previewSpan.style.fontSize = '12px';
           previewSpan.style.color = '#6c757d';
-          
+
           const updatePreview = () => {
             const currentUrl = categoryGenderImages[g.slug];
             if (currentUrl) {
               const isHeicUrl = currentUrl.toLowerCase().includes('.heic') || currentUrl.toLowerCase().includes('.heif');
-              const previewContent = isHeicUrl 
-                ? `<span style="display:inline-block; padding:2px 6px; background:#e0f2fe; color:#0369a1; border-radius:4px; font-size:10px; font-weight:bold; vertical-align:middle; border:1px solid #bae6fd;" title="${currentUrl}">HEIC Image</span>` 
+              const previewContent = isHeicUrl
+                ? `<span style="display:inline-block; padding:2px 6px; background:#e0f2fe; color:#0369a1; border-radius:4px; font-size:10px; font-weight:bold; vertical-align:middle; border:1px solid #bae6fd;" title="${currentUrl}">HEIC Image</span>`
                 : `<img src="${currentUrl}" style="height:28px; width:28px; object-fit:contain; border-radius:3px; vertical-align:middle; border:1px solid #ddd;" />`;
               previewSpan.innerHTML = `${previewContent} <button type="button" style="background:none; border:none; color:#dc3545; cursor:pointer; font-weight:bold; padding:0 4px;" title="Remove">×</button>`;
               previewSpan.querySelector('button').onclick = () => {
@@ -485,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
     });
-    
+
     document.getElementById('categoryFormError').textContent = '';
   }
 
@@ -507,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const status = document.getElementById('categoryStatus').value;
     const categoryType = document.getElementById('categoryType').value;
     let parentId = document.getElementById('categoryParentId').value;
-    
+
     // If subcategory, get parent from select
     if (categoryType === 'subcategory') {
       parentId = document.getElementById('parentCategorySelect').value;
@@ -527,14 +527,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    const payload = { 
-      name, 
-      description, 
-      status, 
-      applicable_genders, 
-      gender_images: categoryGenderImages 
+    const payload = {
+      name,
+      description,
+      status,
+      applicable_genders,
+      gender_images: categoryGenderImages
     };
-    
+
     if (slug) payload.slug = slug;
     if (categoryImageUrl) payload.image_url = categoryImageUrl;
     if (parentId) {
@@ -604,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Cropper logic
   let categoryCropState = null;
 
-  document.getElementById('categoryImageFile')?.addEventListener('change', async function(e) {
+  document.getElementById('categoryImageFile')?.addEventListener('change', async function (e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -634,9 +634,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const reader = new FileReader();
-    reader.onload = function(event) {
+    reader.onload = function (event) {
       const img = new Image();
-      img.onload = function() {
+      img.onload = function () {
         categoryCropState = { img, scale: 1, x: 0, y: 0 };
         document.getElementById('categoryCropper').style.display = 'block';
         drawCategoryCrop();
@@ -646,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
     reader.readAsDataURL(file);
   });
 
-  document.getElementById('categoryCropZoom')?.addEventListener('input', function(e) {
+  document.getElementById('categoryCropZoom')?.addEventListener('input', function (e) {
     if (categoryCropState) {
       categoryCropState.scale = parseFloat(e.target.value);
       drawCategoryCrop();
@@ -656,14 +656,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let isDragging = false;
   let dragStart = { x: 0, y: 0 };
 
-  document.getElementById('categoryCropCanvas')?.addEventListener('mousedown', function(e) {
+  document.getElementById('categoryCropCanvas')?.addEventListener('mousedown', function (e) {
     if (!categoryCropState) return;
     isDragging = true;
     const rect = this.getBoundingClientRect();
     dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
   });
 
-  document.addEventListener('mousemove', function(e) {
+  document.addEventListener('mousemove', function (e) {
     if (!isDragging || !categoryCropState) return;
     const canvas = document.getElementById('categoryCropCanvas');
     if (!canvas) return;
@@ -676,7 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
     drawCategoryCrop();
   });
 
-  document.addEventListener('mouseup', function() {
+  document.addEventListener('mouseup', function () {
     isDragging = false;
   });
 
@@ -695,17 +695,17 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.drawImage(img, offsetX, offsetY, imgSize, imgSize);
   }
 
-  document.getElementById('categoryCropCancel')?.addEventListener('click', function() {
+  document.getElementById('categoryCropCancel')?.addEventListener('click', function () {
     document.getElementById('categoryCropper').style.display = 'none';
     document.getElementById('categoryImageFile').value = '';
     categoryCropState = null;
   });
 
-  document.getElementById('categoryCropUpload')?.addEventListener('click', async function() {
+  document.getElementById('categoryCropUpload')?.addEventListener('click', async function () {
     if (!categoryCropState) return;
     const canvas = document.getElementById('categoryCropCanvas');
     if (!canvas) return;
-    canvas.toBlob(async function(blob) {
+    canvas.toBlob(async function (blob) {
       const formData = new FormData();
       formData.append('image', blob, 'category.jpg');
       const token = requireAuth();
@@ -745,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Handle edit/delete buttons
-  document.addEventListener('click', async function(e) {
+  document.addEventListener('click', async function (e) {
     if (e.target.dataset.action === 'edit') {
       const id = e.target.dataset.id;
       const type = e.target.dataset.type;

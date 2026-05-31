@@ -4,6 +4,7 @@ const CartService = require('../cart/cart.service');
 const ProductModel = require('../products/product.model');
 const { decrementStock, incrementStock } = require('../products/product.stock.service');
 const PaymentService = require('../payment/payment.service');
+const EmailService = require('../../services/email.service');
 const messages = require('../../constants/messages');
 const UserModel = require('../users/user.model');
 const UserAddressModel = require('../users/user.address.model');
@@ -16,8 +17,18 @@ function generateOrderNumber() {
   return `ORD-${date}-${random}`;
 }
 
+const placeOrderCache = new Map();
+
 class OrderService {
-  static async placeOrder(userId, { payment_method, shipping_address, shipping_address_id, coupon_code }) {
+  static async placeOrder(userId, { payment_method, shipping_address, shipping_address_id, coupon_code }, idempotencyKey) {
+    if (idempotencyKey) {
+       const cached = placeOrderCache.get(idempotencyKey);
+       // Return cached order if it was created within the last 10 minutes
+       if (cached && Date.now() - cached.timestamp < 10 * 60 * 1000) {
+         return cached.order;
+       }
+    }
+
     const CouponModel = require('../coupons/coupon.model');
     const knex = require('../../db/connection').knex;
     const cartData = await CartService.getCartWithItems(userId);
@@ -157,7 +168,13 @@ class OrderService {
         await decrementStock(item.product_id, item.quantity, item.selected_size_id);
       }
       await CartModel.clearCart(cartData.cart_id);
-      return this.getOrderById(order.id, userId);
+      const finalOrder = await this.getOrderById(order.id, userId);
+      
+      // Send Confirmation Email to Customer & Admin
+      EmailService.sendOrderConfirmationEmail(finalOrder).catch(e => logger.error('Email error:', e));
+      EmailService.sendAdminOrderSuccessEmail(finalOrder).catch(e => logger.error('Admin Email error:', e));
+
+      return finalOrder;
     }
 
     // Razorpay: create payment order; stock and cart cleared only after payment verify
@@ -166,12 +183,21 @@ class OrderService {
       await OrderModel.update(order.id, { razorpay_order_id: razorpayOrder.id });
     }
     const orderWithRazorpay = await this.getOrderById(order.id, userId);
-    return {
+    const finalOrder = {
       ...orderWithRazorpay,
       razorpay_order_id: razorpayOrder?.id || null,
       razorpay_amount: Math.round(total * 100), // amount in paise
       razorpay_currency: 'INR'
     };
+
+    if (idempotencyKey) {
+      placeOrderCache.set(idempotencyKey, {
+        timestamp: Date.now(),
+        order: finalOrder
+      });
+    }
+
+    return finalOrder;
   }
 
   static async verifyRazorpayPayment(userId, orderId, { razorpay_order_id, razorpay_payment_id, razorpay_signature }) {
@@ -200,7 +226,33 @@ class OrderService {
       razorpay_payment_id,
       status: 'confirmed'
     });
-    return this.getOrderById(orderId, userId);
+    const finalOrder = await this.getOrderById(orderId, userId);
+
+    // Send Confirmation Email to Customer & Admin
+    EmailService.sendOrderConfirmationEmail(finalOrder).catch(e => logger.error('Email error:', e));
+    EmailService.sendAdminOrderSuccessEmail(finalOrder).catch(e => logger.error('Admin Email error:', e));
+
+    return finalOrder;
+  }
+
+  static async reportPaymentFailed(userId, orderId, reason) {
+    const order = await OrderModel.findById(orderId);
+    if (!order) throw new Error(messages.NOT_FOUND);
+    if (order.user_id !== userId) throw new Error(messages.NOT_FOUND);
+    
+    // Only mark as failed if it's currently pending
+    if (order.payment_status === 'pending') {
+      await OrderModel.update(orderId, {
+        payment_status: 'failed'
+      });
+    }
+
+    const finalOrder = await this.getOrderById(orderId, userId, true);
+    
+    // Send Alert to Admin
+    EmailService.sendAdminPaymentFailedEmail(finalOrder, reason).catch(e => logger.error('Admin Email error:', e));
+
+    return { success: true };
   }
 
   static async getOrderById(orderId, userId, admin = false) {

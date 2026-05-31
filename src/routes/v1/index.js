@@ -1,4 +1,12 @@
 const express = require('express');
+const {
+  loginLimiter,
+  registerLimiter,
+  otpSendLimiter,
+  otpVerifyLimiter,
+  uploadLimiter,
+  adminApiLimiter,
+} = require('../../middlewares/rate-limit.middleware');
 const authRoutes = require('./auth.routes');
 const productRoutes = require('../../app/products/product.routes');
 const userRoutes = require('../../app/users/user.routes');
@@ -33,6 +41,7 @@ const adminHomeVideoRoutes = require('../../app/home-videos/home-video.admin.rou
 const ringSizeRoutes = require('../../app/ring-sizes/ring-size.routes');
 const couponRoutes = require('../../app/coupons/coupon.routes');
 const adminCouponRoutes = require('../../app/coupons/coupon.admin.routes');
+const adminAuthRoutes = require('../../app/admin/admin.auth.routes');
 
 
 const router = express.Router();
@@ -64,22 +73,23 @@ router.use('/orders', orderRoutes);
 router.use('/favorites', favoriteRoutes);
 
 // Admin APIs (protected with auth middleware inside route files)
-router.use('/admin/products', adminProductRoutes);
-router.use('/admin/categories', adminCategoryRoutes);
-router.use('/admin/genders', adminGenderRoutes);
-router.use('/admin/occasions', adminOccasionRoutes);
-router.use('/admin/uploads', adminUploadRoutes);
-router.use('/admin/orders', orderAdminRoutes);
-router.use('/admin/promos', adminPromoRoutes);
-router.use('/admin/stories', adminStoryRoutes);
-router.use('/admin/banners', adminBannerRoutes);
-router.use('/admin/marquee', adminMarqueeRoutes);
-router.use('/admin/testimonials', adminTestimonialRoutes);
-router.use('/admin/home-ads', adminHomeAdRoutes);
-router.use('/admin/collections', adminCollectionRoutes);
-router.use('/admin/home-videos', adminHomeVideoRoutes);
-router.use('/admin/ring-sizes', ringSizeRoutes);
-router.use('/admin/offers', adminCouponRoutes);
+router.use('/admin/uploads', uploadLimiter, adminUploadRoutes);
+router.use('/admin/products', adminApiLimiter, adminProductRoutes);
+router.use('/admin/categories', adminApiLimiter, adminCategoryRoutes);
+router.use('/admin/genders', adminApiLimiter, adminGenderRoutes);
+router.use('/admin/occasions', adminApiLimiter, adminOccasionRoutes);
+router.use('/admin/orders', adminApiLimiter, orderAdminRoutes);
+router.use('/admin/promos', adminApiLimiter, adminPromoRoutes);
+router.use('/admin/stories', adminApiLimiter, adminStoryRoutes);
+router.use('/admin/banners', adminApiLimiter, adminBannerRoutes);
+router.use('/admin/marquee', adminApiLimiter, adminMarqueeRoutes);
+router.use('/admin/testimonials', adminApiLimiter, adminTestimonialRoutes);
+router.use('/admin/home-ads', adminApiLimiter, adminHomeAdRoutes);
+router.use('/admin/collections', adminApiLimiter, adminCollectionRoutes);
+router.use('/admin/home-videos', adminApiLimiter, adminHomeVideoRoutes);
+router.use('/admin/ring-sizes', adminApiLimiter, ringSizeRoutes);
+router.use('/admin/offers', adminApiLimiter, adminCouponRoutes);
+router.use('/admin/auth', adminAuthRoutes);
 
 
 module.exports = router;

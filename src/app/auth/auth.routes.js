@@ -3,6 +3,12 @@ const { body } = require('express-validator');
 const AuthController = require('./auth.controller');
 const { validate } = require('../../middlewares/validate.middleware');
 const messages = require('../../constants/messages');
+const {
+  loginLimiter,
+  registerLimiter,
+  otpSendLimiter,
+  otpVerifyLimiter,
+} = require('../../middlewares/rate-limit.middleware');
 
 const router = express.Router();
 
@@ -13,12 +19,12 @@ const loginValidation = [
 ];
 
 const requestOtpValidation = [
-  body('phone').notEmpty().withMessage('Phone number is required').trim(),
+  body('email').isEmail().withMessage(messages.EMAIL_INVALID).notEmpty().withMessage(messages.EMAIL_REQUIRED),
   validate
 ];
 
 const verifyOtpValidation = [
-  body('phone').notEmpty().withMessage('Phone number is required'),
+  body('email').isEmail().withMessage(messages.EMAIL_INVALID).notEmpty().withMessage(messages.EMAIL_REQUIRED),
   body('otp').notEmpty().withMessage('OTP is required'),
   validate
 ];
@@ -33,11 +39,11 @@ const completeRegistrationValidation = [
 
 const { authenticate } = require('../../middlewares/auth.middleware');
 
-router.post('/login', loginValidation, AuthController.login);
-router.post('/request-otp', requestOtpValidation, AuthController.requestOtp);
-router.post('/verify-otp', verifyOtpValidation, AuthController.verifyOtp);
-router.post('/complete-registration', completeRegistrationValidation, AuthController.completeRegistration);
-router.get('/verify-email', AuthController.verifyEmail);
-router.post('/resend-verification', authenticate, AuthController.resendVerification);
+router.post('/login',               loginLimiter,      loginValidation,               AuthController.login);
+router.post('/request-otp',         otpSendLimiter,    requestOtpValidation,          AuthController.requestOtp);
+router.post('/verify-otp',          otpVerifyLimiter,  verifyOtpValidation,           AuthController.verifyOtp);
+router.post('/complete-registration', registerLimiter, completeRegistrationValidation, AuthController.completeRegistration);
+router.get('/verify-email',                                                            AuthController.verifyEmail);
+router.post('/resend-verification', authenticate,                                     AuthController.resendVerification);
 
 module.exports = router;

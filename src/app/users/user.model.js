@@ -194,6 +194,61 @@ class UserModel {
     return user || null;
   }
 
+  // ─── Admin Security Methods ────────────────────────────────────────
+
+  /** Find admin user by password reset token hash */
+  static async findByResetToken(tokenHash) {
+    return knex('users')
+      .where({ reset_password_token_hash: tokenHash })
+      .whereNull('deleted_at')
+      .first();
+  }
+
+  /** Store a hashed password reset token */
+  static async setResetToken(id, tokenHash, expiresAt) {
+    return knex('users').where({ id }).update({
+      reset_password_token_hash: tokenHash,
+      reset_password_expires_at: expiresAt,
+      updated_at: knex.fn.now(),
+    });
+  }
+
+  /** Clear password reset token after use */
+  static async clearResetToken(id) {
+    return knex('users').where({ id }).update({
+      reset_password_token_hash: null,
+      reset_password_expires_at: null,
+      updated_at: knex.fn.now(),
+    });
+  }
+
+  /** Store a hashed 2FA OTP code */
+  static async setTwoFaCode(id, codeHash, expiresAt) {
+    return knex('users').where({ id }).update({
+      two_fa_code_hash: codeHash,
+      two_fa_expires_at: expiresAt,
+      two_fa_attempts: 0,
+      updated_at: knex.fn.now(),
+    });
+  }
+
+  /** Clear 2FA OTP data after use or expiry */
+  static async clearTwoFaCode(id) {
+    return knex('users').where({ id }).update({
+      two_fa_code_hash: null,
+      two_fa_expires_at: null,
+      two_fa_attempts: 0,
+      updated_at: knex.fn.now(),
+    });
+  }
+
+  /** Increment failed 2FA attempt counter */
+  static async incrementTwoFaAttempts(id) {
+    return knex('users').where({ id }).increment('two_fa_attempts', 1);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+
   /**
    * Soft delete user by ID
    * @param {number} id - User ID

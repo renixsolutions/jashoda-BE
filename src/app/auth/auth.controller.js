@@ -21,23 +21,23 @@ class AuthController {
 
   static async requestOtp(req, res) {
     try {
-      const { phone } = req.body;
-      await AuthService.requestOtp(phone);
+      const { email } = req.body;
+      await AuthService.requestOtp(email);
       return sendSuccess(res, 200, 'OTP sent successfully');
     } catch (error) {
       logger.error('Request OTP error:', error);
-      return sendError(res, 400, error.message || 'Invalid phone number');
+      return sendError(res, 400, error.message || 'Invalid email address');
     }
   }
 
   static async verifyOtp(req, res) {
     try {
-      const { phone, otp } = req.body;
-      const result = await AuthService.verifyOtp(phone, otp);
+      const { email, otp } = req.body;
+      const result = await AuthService.verifyOtp(email, otp);
       return sendSuccess(res, 200, 'OTP verified', result);
     } catch (error) {
       logger.error('Verify OTP error:', error);
-      if (error.message === 'Invalid OTP' || error.message === 'Invalid phone number') {
+      if (error.message === 'Invalid OTP' || error.message === 'Invalid email address') {
         return sendError(res, 400, error.message);
       }
       if (error.message.includes('not active')) {

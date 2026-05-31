@@ -7,8 +7,9 @@ class OrderController {
   static async placeOrder(req, res) {
     try {
       const userId = req.user.id;
+      const idempotencyKey = req.headers['x-idempotency-key'];
       const { payment_method, shipping_address, shipping_address_id, coupon_code } = req.body;
-      const order = await OrderService.placeOrder(userId, { payment_method, shipping_address, shipping_address_id, coupon_code });
+      const order = await OrderService.placeOrder(userId, { payment_method, shipping_address, shipping_address_id, coupon_code }, idempotencyKey);
       return sendSuccess(res, 201, 'Order placed successfully', order);
     } catch (error) {
       logger.error('Place order error:', error);
@@ -66,6 +67,20 @@ class OrderController {
       if (error.message === 'Payment verification failed' || error.message === 'Order is not a Razorpay order') {
         return sendError(res, 400, error.message);
       }
+      return sendError(res, 500, error.message || messages.ERROR);
+    }
+  }
+
+  static async reportPaymentFailed(req, res) {
+    try {
+      const userId = req.user.id;
+      const orderId = req.params.id;
+      const { reason } = req.body;
+      
+      await OrderService.reportPaymentFailed(userId, orderId, reason);
+      return sendSuccess(res, 200, 'Payment failure reported successfully');
+    } catch (error) {
+      logger.error('Report payment failed error:', error);
       return sendError(res, 500, error.message || messages.ERROR);
     }
   }

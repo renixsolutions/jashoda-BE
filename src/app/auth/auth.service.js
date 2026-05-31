@@ -4,10 +4,12 @@ const UserModel = require('../users/user.model');
 const appConfig = require('../../config/app');
 const logger = require('../../utils/logger');
 const { generateToken, verifyToken } = require('../../utils/jwt');
-const { sendVerificationEmail, STATIC_OTP } = require('../../services/email.service');
+const { sendVerificationEmail, sendOtpEmail, STATIC_OTP } = require('../../services/email.service');
 
 const TEMP_TOKEN_EXPIRY = '15m';
 const EMAIL_VERIFICATION_EXPIRY_HOURS = 24;
+
+const otpCache = new Map(); // In-memory store for OTPs
 
 class AuthService {
   static async login(email, password) {
@@ -16,29 +18,51 @@ class AuthService {
   }
 
   /**
-   * Request OTP for phone (static OTP 123456 for now)
+   * Request OTP for email
    */
-  static async requestOtp(phone) {
-    const normalized = String(phone).replace(/\D/g, '');
-    if (normalized.length < 10) {
-      throw new Error('Invalid phone number');
+  static async requestOtp(email) {
+    const emailTrimmed = String(email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+      throw new Error('Invalid email address');
     }
-    // In production you would send SMS here. For now we just return success.
-    return { message: 'OTP sent successfully' };
+    
+    // Generate unique 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    otpCache.set(emailTrimmed, {
+      otp,
+      expires: Date.now() + 10 * 60 * 1000 // 10 minutes
+    });
+
+    await sendOtpEmail(emailTrimmed, otp);
+    return { message: 'OTP sent successfully to your email' };
   }
 
   /**
-   * Verify OTP: if valid (123456), return registered user + token or tempToken for registration
+   * Verify OTP: if valid, return registered user + token or tempToken for registration
    */
-  static async verifyOtp(phone, otp) {
-    const normalized = String(phone).replace(/\D/g, '');
-    if (normalized.length < 10) {
-      throw new Error('Invalid phone number');
+  static async verifyOtp(email, otp) {
+    const emailTrimmed = String(email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+      throw new Error('Invalid email address');
     }
-    if (String(otp).trim() !== STATIC_OTP) {
+    
+    const cached = otpCache.get(emailTrimmed);
+    if (!cached) {
+      throw new Error('Invalid or expired OTP');
+    }
+    if (Date.now() > cached.expires) {
+      otpCache.delete(emailTrimmed);
+      throw new Error('OTP has expired');
+    }
+    if (cached.otp !== String(otp).trim()) {
       throw new Error('Invalid OTP');
     }
-    const user = await UserModel.findByPhone(normalized);
+    
+    // Clear OTP after successful use
+    otpCache.delete(emailTrimmed);
+
+    const user = await UserModel.findByEmail(emailTrimmed);
     if (user) {
       if (user.status !== 'active') {
         throw new Error('Account is not active');
@@ -60,13 +84,13 @@ class AuthService {
       };
     }
     const tempToken = generateToken(
-      { phone: normalized, purpose: 'complete_registration' },
+      { email: emailTrimmed, purpose: 'complete_registration' },
       TEMP_TOKEN_EXPIRY
     );
     return {
       registered: false,
       tempToken,
-      phone: normalized
+      email: emailTrimmed
     };
   }
 
@@ -80,22 +104,17 @@ class AuthService {
     } catch (e) {
       throw new Error('Invalid or expired link. Please request OTP again.');
     }
-    if (decoded.purpose !== 'complete_registration' || !decoded.phone) {
+    if (decoded.purpose !== 'complete_registration' || !decoded.email) {
       throw new Error('Invalid token');
     }
-    const phone = decoded.phone;
+    // Trust the email from the token, ignore the one passed in body (or enforce they match)
+    const emailTrimmed = decoded.email;
     const name = String(fullName || '').trim();
-    const emailTrimmed = String(email || '').trim().toLowerCase();
-    if (!name || !emailTrimmed) {
-      throw new Error('Full name and email are required');
+    if (!name) {
+      throw new Error('Full name is required');
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
-      throw new Error('Invalid email format');
-    }
-    const existingByPhone = await UserModel.findByPhone(phone);
-    if (existingByPhone) {
-      throw new Error('Phone number already registered');
-    }
+    
+    // Check if email somehow got registered in the meantime
     const existingByEmail = await UserModel.findByEmail(emailTrimmed);
     if (existingByEmail) {
       throw new Error('Email already registered');
@@ -117,7 +136,7 @@ class AuthService {
       email: emailTrimmed,
       username,
       password: hashedPassword,
-      phone,
+      phone: null,
       title: title || null,
       email_verified: false,
       email_verification_token: verificationToken,

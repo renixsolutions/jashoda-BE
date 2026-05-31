@@ -37,5 +37,6 @@ router.post(
 );
 router.get('/', OrderController.getMyOrders);
 router.get('/:id', [param('id').isInt({ min: 1 })], validate, OrderController.getOrder);
+router.post('/:id/payment-failed', [param('id').isInt({ min: 1 })], validate, OrderController.reportPaymentFailed);
 
 module.exports = router;
